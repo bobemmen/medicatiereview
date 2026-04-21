@@ -2,6 +2,7 @@
 
 use App\Services\ClaudeService;
 use App\Services\DossierExtractor;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -139,6 +140,24 @@ TXT;
             fn() => print($markdown),
             $filename,
             ['Content-Type' => 'text/markdown; charset=UTF-8']
+        );
+    }
+
+    public function downloadPdf()
+    {
+        if (!$this->analysis) {
+            return null;
+        }
+
+        $pdf = Pdf::loadView('pdf.medication-review', ['analysis' => $this->analysis])
+            ->setPaper('a4');
+
+        $filename = 'medicatiebeoordeling-' . now()->format('Ymd-His') . '.pdf';
+
+        return response()->streamDownload(
+            fn() => print($pdf->output()),
+            $filename,
+            ['Content-Type' => 'application/pdf']
         );
     }
 
@@ -335,10 +354,16 @@ TXT;
                 class="rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium px-4 py-2 text-sm transition">
                 Nieuwe beoordeling
             </button>
-            <button wire:click="downloadMarkdown"
-                class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 text-sm transition">
-                Download Markdown-verslag
-            </button>
+            <div class="flex gap-2">
+                <button wire:click="downloadMarkdown"
+                    class="rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-medium px-4 py-2 text-sm transition">
+                    Download Markdown
+                </button>
+                <button wire:click="downloadPdf"
+                    class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium px-4 py-2 text-sm transition">
+                    Download PDF
+                </button>
+            </div>
         </div>
     @endif
 
