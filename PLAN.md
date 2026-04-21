@@ -155,8 +155,20 @@ Op elke pagina zichtbaar:
 
 ### 6.3 Toegangsbeheer
 
-- Overweeg een registratie-/loginmechanisme te vereisen (bv. BIG-registratienummer als verificatie), zodat de tool aantoonbaar alleen door professionals wordt gebruikt
-- Dit versterkt ook de positie bij MDR-beoordeling
+**Beslissing:** De tool wordt in eerste instantie volledig open aangeboden, zonder login of registratie. Dit verlaagt de drempel voor gebruik en versnelt adoptie tijdens de MVP- en uitbreidingsfases.
+
+**Voorzien voor latere fase:** Een registratie-/loginmechanisme (bijvoorbeeld verificatie via BIG-registratienummer) wordt architectureel voorbereid maar niet geactiveerd. Motivatie om dit later wel in te bouwen:
+
+- Aantoonbaarheid dat de tool uitsluitend door bevoegde professionals wordt gebruikt
+- Versterkt de positie bij een eventuele MDR-beoordeling
+- Maakt het mogelijk om gebruikssessies te koppelen aan een professional (bijv. voor audit trail, mits privacy-neutraal)
+
+**Architecturele voorbereiding:**
+
+- Backend wordt gebouwd met een optionele auth-middleware (nu uitgeschakeld, later inschakelbaar via config)
+- API-endpoints ondersteunen vanaf dag 1 een `Authorization`-header zonder die te vereisen
+- Frontend-routes zijn zo opgezet dat een login-/registratiepagina later toegevoegd kan worden zonder breken van bestaande URL's
+- Geen koppeling van dossierdata aan gebruiker in de sessielaag — dat blijft zo, ook na invoering login (privacy-by-design)
 
 ---
 
@@ -228,11 +240,15 @@ Elke KNMP-stap krijgt een eigen systeemprompt met:
 - Verbeterde interactie-analyse (met nuancering ernst)
 
 ### Fase 3 — Compliance en productie (2-3 maanden)
-- Login/registratie (BIG-nummerverificatie overwegen)
 - Formele MDR-beoordeling en juridisch advies
 - DPA met Anthropic
 - Security audit
 - Gebruikersonderzoek met apothekers
+
+### Fase 3b — Toegangsbeheer (optioneel, indien MDR-beoordeling of gebruiksdata dit vereist)
+- Activeren van de voorbereide auth-middleware
+- Registratie-/loginflow met BIG-nummerverificatie
+- Privacyneutrale audit trail (sessie-koppeling zonder dossierdata)
 
 ### Fase 4 — Groei
 - Meertaligheid (NL/EN)
@@ -257,8 +273,13 @@ Elke KNMP-stap krijgt een eigen systeemprompt met:
 
 ## 11. Openstaande beslissingen
 
-1. **Toegangsbeheer:** Open voor iedereen vs. registratie (BIG-nummer)? — Registratie versterkt MDR-positie maar verlaagt adoptie.
-2. **Hosting EU vs. buiten EU:** Invloed op AVG en Anthropic DPA-vereisten.
-3. **Taal Claude API:** Alleen Nederlands of ook Engels? Claude presteert goed in het Nederlands.
-4. **Financiering:** Gratis tool, abonnementsmodel of subsidie (ZonMw, KNMP-fonds)?
-5. **Samenwerking KNMP/LHV:** Afstemming met beroepsorganisaties verhoogt geloofwaardigheid en vermindert MDR-risico.
+1. **Hosting EU vs. buiten EU:** Invloed op AVG en Anthropic DPA-vereisten.
+2. **Taal Claude API:** Alleen Nederlands of ook Engels? Claude presteert goed in het Nederlands.
+3. **Financiering:** Gratis tool, abonnementsmodel of subsidie (ZonMw, KNMP-fonds)?
+4. **Samenwerking KNMP/LHV:** Afstemming met beroepsorganisaties verhoogt geloofwaardigheid en vermindert MDR-risico.
+
+## 12. Genomen beslissingen
+
+- **Toegangsbeheer:** Tool wordt volledig open aangeboden zonder login bij lancering. Architectuur wordt voorbereid op later toe te voegen loginmechanisme (zie §6.3).
+- **AI-analyse:** Volledig uitgevoerd door Claude (geen externe interactie-/medicatiedatabases in MVP).
+- **Distributie:** Publieke webapp, toegankelijk via het open internet.
