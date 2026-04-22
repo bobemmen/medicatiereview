@@ -1,4 +1,40 @@
-<div class="flex-1 flex items-start justify-center p-6">
+<div class="flex-1 flex items-start justify-center p-6 relative">
+
+    {{-- Fullscreen loading overlay tijdens upload + extractie --}}
+    <div wire:loading wire:target="upload"
+         class="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex items-center justify-center"
+         x-data="{
+            steps: [
+                'Bestand uploaden…',
+                'Document ontleden…',
+                'Tabellen en lijsten verwerken…',
+                'Tekst opschonen…',
+            ],
+            i: 0, visible: true,
+            get text() { return this.steps[this.i] ?? '' },
+            advance() {
+                if (this.i >= this.steps.length - 1) return;
+                this.visible = false;
+                setTimeout(() => {
+                    this.i++;
+                    this.visible = true;
+                    setTimeout(() => this.advance(), 1400);
+                }, 300);
+            }
+         }"
+         x-init="setTimeout(() => advance(), 1400)">
+        <div class="max-w-sm text-center p-8">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#E2E8F0] border-t-[#1A4F82] mb-5"></div>
+            <h3 class="text-base font-semibold text-[#0F172A] mb-2">Document inlezen</h3>
+            <div class="relative h-5 overflow-hidden">
+                <p class="text-sm text-[#1A4F82] font-medium transition-all duration-300"
+                   :style="visible ? 'opacity:1;transform:translateY(0)' : 'opacity:0;transform:translateY(-6px)'"
+                   x-text="text">
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-2xl w-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-6">
         <h2 class="text-lg font-semibold text-[#0F172A] mb-1">Dossier invoeren</h2>
         <p class="text-sm text-[#64748B] mb-5">Upload een PDF/Word-bestand of plak de tekst direct.</p>
@@ -8,7 +44,6 @@
                 <span class="text-sm font-medium text-[#334155]">Upload bestand</span>
                 <span class="text-xs text-[#64748B] mt-1">PDF, DOCX, DOC of TXT (max 10 MB)</span>
                 <input type="file" wire:model="upload" accept=".pdf,.docx,.doc,.txt,.md" class="mt-2 text-xs text-[#334155]" />
-                <div wire:loading wire:target="upload" class="text-xs text-[#1A4F82] mt-2">Bestand uitlezen...</div>
             </label>
 
             <button type="button" wire:click="loadExample"
