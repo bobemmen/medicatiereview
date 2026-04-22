@@ -19,6 +19,98 @@ class ClaudeService
         $this->model = (string) config('services.anthropic.model');
     }
 
+    /**
+     * Ruwe schatting van aantal tokens op basis van karakterlengte.
+     * Voor Nederlandse medische tekst geldt grofweg: 1 token ≈ 3.5 karakters.
+     */
+    public static function estimateTokens(string $text): int
+    {
+        return (int) ceil(mb_strlen($text) / 3.5);
+    }
+
+    /**
+     * Laat Claude de klinisch relevante informatie uit een groot dossier extraheren,
+     * zodat de gebruiker kan verifiëren wat er wordt doorgestuurd naar de MBO-analyse.
+     * Retourneert een beknopte, gestructureerde samenvatting in markdown.
+     */
+    public function summarizeDossier(string $dossierText): string
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('ANTHROPIC_API_KEY ontbreekt. Stel deze in via .env of de Laravel Cloud omgevingsvariabelen.');
+        }
+
+        $response = Http::withHeaders([
+            'x-api-key' => $this->apiKey,
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+        ])->timeout(90)->post($this->apiUrl, [
+            'model' => $this->model,
+            'max_tokens' => 2500,
+            'system' => $this->summarySystemPrompt(),
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => "Extract hieronder de voor een medicatiebeoordeling relevante informatie uit dit dossier.\n\n=== DOSSIER ===\n{$dossierText}\n=== EINDE DOSSIER ===",
+                ],
+            ],
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('Claude API fout bij samenvatten: ' . $response->status() . ' — ' . $response->body());
+        }
+
+        $payload = $response->json();
+
+        $usage = $payload['usage'] ?? [];
+        Log::info('Claude summary usage', [
+            'input' => $usage['input_tokens'] ?? null,
+            'output' => $usage['output_tokens'] ?? null,
+        ]);
+
+        $text = '';
+        foreach ($payload['content'] ?? [] as $block) {
+            if (($block['type'] ?? '') === 'text') {
+                $text .= $block['text'] ?? '';
+            }
+        }
+
+        $text = trim($text);
+        if ($text === '') {
+            throw new RuntimeException('Claude gaf een lege samenvatting terug. Probeer het opnieuw.');
+        }
+
+        return $text;
+    }
+
+    private function summarySystemPrompt(): string
+    {
+        return <<<'PROMPT'
+Je bent een ervaren klinisch farmacoloog gespecialiseerd in polyfarmacie bij ouderen.
+Je krijgt een (soms lang) apotheek- of huisartsendossier en extraheert daaruit ALLEEN de informatie die relevant is voor een medicatiebeoordeling (MBO) volgens STRIP / STOPP-START / PCNE.
+
+Doel: een beknopte, gestructureerde samenvatting die de gebruiker kan controleren voordat deze naar de volledige analyse gaat.
+
+Wat neem je WEL op:
+- Patiëntkenmerken: initialen/pseudoniem, leeftijd/geboortejaar, geslacht, gewicht, huisarts, allergieën
+- Voorgeschiedenis (chronische diagnoses) en actuele episodes/klachten
+- Kwetsbaarheid / behandelgrenzen / relevante context (baxter, thuiszorg, mantelzorg)
+- ALLE actieve medicatie (naam, sterkte, doseercode + gebruiksfrequentie); stopgezette middelen alleen vermelden als ze klinisch relevant zijn (bv. recent gestopt)
+- Laatste meting van klinisch relevante labwaarden (eGFR, creatinine, HbA1c, kalium, natrium, INR, leverwaarden, glucose) — NIET de hele historie, alleen de meest recente per parameter + datum
+- Bekende contra-indicaties en intoleranties
+
+Wat laat je WEG:
+- Oude labwaarden-historie (meerdere waarden van dezelfde parameter over de tijd)
+- Ketenzorg-registratie-items die niet klinisch zijn (bv. "deelname ketenzorgprogramma: ja")
+- Administratieve labels zonder klinische relevantie
+- Herhalingen
+- Lijsten van alle voet-inspecties, bloeddrukreeksen etc. — alleen de meest recente
+
+Output-formaat: Nederlandse tekst in markdown met duidelijke kopjes (## Patiënt, ## Voorgeschiedenis, ## Actieve medicatie, ## Labwaarden (meest recent), ## Overig relevant). Houd het beknopt (streven naar ~800-1500 woorden), maar volledig genoeg voor een MBO.
+
+Voeg NIET je eigen klinische oordeel of aanbevelingen toe — dat komt pas in de volgende stap. Je extraheert en structureert alleen.
+PROMPT;
+    }
+
     public function analyseDossier(string $dossierText): array
     {
         if ($this->apiKey === '') {
@@ -31,7 +123,7 @@ class ClaudeService
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 8000,
+            'max_tokens' => 6000,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
             // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
@@ -107,9 +199,14 @@ Je gebruikt bij je analyse:
 Uitgangspunten:
 - De doelgroep is kwetsbare ouderen (≥ 65 jaar) met polyfarmacie (≥ 5 chronische geneesmiddelen)
 - Geef nooit definitieve behandeladviezen: je levert beslissingsondersteuning die door een BIG-geregistreerde zorgprofessional moet worden getoetst
-- Wees beknopt, klinisch concreet en onderbouw bevindingen waar mogelijk met evidence-niveau of richtlijn
 - Gebruik Nederlandse medische terminologie
 - Bij onvoldoende informatie: benoem dit in ontbrekende_informatie
+
+## Beknoptheid (belangrijk voor responsegrootte)
+- Neem in `labwaarden` MAXIMAAL 6 waarden op: de meest recente én klinisch relevante (afwijkend of voor medicatie relevant, bv. eGFR, HbA1c, kalium, natrium, creatinine). Laat labwaarden-historie weg — alleen de laatste meting van elke relevante parameter.
+- Houd `klinische_duiding` per labwaarde op max 1 korte zin.
+- Houd `notitie` per medicatie op max 2 korte zinnen — concreet en klinisch.
+- Gebruik korte bullets-achtige zinnen, geen herhaling.
 
 ## Apotheeksysteem-exportformaten
 

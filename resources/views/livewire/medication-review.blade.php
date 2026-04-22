@@ -12,6 +12,8 @@
             @switch($step)
                 @case('disclaimer') Welkom @break
                 @case('input') Nieuwe medicatiereview @break
+                @case('summarizing') Dossier samenvatten @break
+                @case('summary_review') Samenvatting controleren @break
                 @case('analyzing') Dossier analyseren @break
                 @case('review') Medicatiereview @break
                 @case('rapport') Rapport @break
@@ -55,6 +57,10 @@
         @include('partials.review.disclaimer')
     @elseif ($step === 'input')
         @include('partials.review.input')
+    @elseif ($step === 'summarizing')
+        @include('partials.review.summarizing')
+    @elseif ($step === 'summary_review')
+        @include('partials.review.summary-review')
     @elseif ($step === 'analyzing')
         @include('partials.review.analyzing')
     @elseif ($step === 'error')

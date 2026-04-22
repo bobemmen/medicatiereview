@@ -23,8 +23,11 @@ class MedicationReview extends Component
         'Onnodig geneesmiddel',
     ];
 
-    public string $step = 'disclaimer'; // disclaimer | input | analyzing | review | rapport | error
+    public string $step = 'disclaimer'; // disclaimer | input | summarizing | summary_review | analyzing | review | rapport | error
     public string $dossierText = '';
+    public string $dossierSummary = '';
+    public int $estimatedTokens = 0;
+    public const TOKEN_THRESHOLD = 5000;
     public $upload = null;
     public ?array $analysis = null;
     public ?string $errorMessage = null;
@@ -118,9 +121,49 @@ TXT;
             return;
         }
 
-        // Only set the step — the analyzing screen calls runAnalysis() via wire:init
-        // so the browser first renders the loading screen before the API call starts.
+        $this->estimatedTokens = ClaudeService::estimateTokens($this->dossierText);
+
+        if ($this->estimatedTokens > self::TOKEN_THRESHOLD) {
+            // Groot dossier: eerst samenvatten en laten verifiëren door gebruiker.
+            $this->step = 'summarizing';
+        } else {
+            // Klein genoeg: direct door naar analyse.
+            $this->step = 'analyzing';
+        }
+    }
+
+    public function runSummarize(): void
+    {
+        if ($this->step !== 'summarizing') {
+            return;
+        }
+
+        try {
+            $claude = app(ClaudeService::class);
+            $this->dossierSummary = $claude->summarizeDossier($this->dossierText);
+            $this->step = 'summary_review';
+        } catch (\Throwable $e) {
+            $this->errorMessage = $e->getMessage();
+            $this->step = 'error';
+        }
+    }
+
+    public function confirmSummary(): void
+    {
+        if (trim($this->dossierSummary) === '') {
+            $this->errorMessage = 'De samenvatting is leeg. Ga terug en probeer het opnieuw.';
+            return;
+        }
+
+        // De gebruikergecontroleerde samenvatting wordt nu de input voor de MBO-analyse.
+        $this->dossierText = $this->dossierSummary;
         $this->step = 'analyzing';
+    }
+
+    public function regenerateSummary(): void
+    {
+        $this->dossierSummary = '';
+        $this->step = 'summarizing';
     }
 
     public function runAnalysis(): void
@@ -202,6 +245,8 @@ TXT;
     public function startOver(): void
     {
         $this->dossierText = '';
+        $this->dossierSummary = '';
+        $this->estimatedTokens = 0;
         $this->analysis = null;
         $this->errorMessage = null;
         $this->checked = [];
