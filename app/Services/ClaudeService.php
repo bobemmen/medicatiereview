@@ -31,7 +31,7 @@ class ClaudeService
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 5000,
+            'max_tokens' => 8000,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
             // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
@@ -64,11 +64,20 @@ class ClaudeService
             'cache_read' => $usage['cache_read_input_tokens'] ?? null,
         ]);
 
+        if (($payload['stop_reason'] ?? '') === 'max_tokens') {
+            Log::warning('Claude response afgekapt door max_tokens', ['payload' => $payload]);
+            throw new RuntimeException('Het dossier is te uitgebreid voor één analyse. Verwijder de labuitslagen-geschiedenis (alleen recente waarden nodig) en probeer opnieuw.');
+        }
+
         foreach ($payload['content'] ?? [] as $block) {
             if (($block['type'] ?? '') === 'tool_use' && ($block['name'] ?? '') === self::TOOL_NAME) {
                 $input = $block['input'] ?? null;
-                if (is_array($input)) {
+                if (is_array($input) && !empty($input['medicatie'])) {
                     return $input;
+                }
+                if (is_array($input) && array_key_exists('medicatie', $input)) {
+                    Log::warning('Claude tool-respons heeft lege medicatie-array', ['input' => $input]);
+                    throw new RuntimeException('Claude heeft geen actieve medicatie gevonden in het dossier. Controleer of de medicatieparagraaf aanwezig is en probeer opnieuw.');
                 }
             }
         }
