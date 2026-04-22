@@ -57,13 +57,13 @@
         .doc-header td { vertical-align: middle; }
         .doc-header .logo-cell {
             background: #ffffff;
-            padding: 7mm 10mm;
-            width: 55mm;
+            padding: 5mm 8mm;
+            width: 60mm;
             border-right: 0.5pt solid #E2E8F0;
         }
         .doc-header .title-cell {
             background: #1A4F82;
-            padding: 7mm 10mm;
+            padding: 5mm 10mm;
             color: #fff;
         }
         .doc-header .contact { color: #64748B; font-size: 7.5pt; margin-top: 1.5mm; }
@@ -208,7 +208,7 @@
     <table class="doc-header">
         <tr>
             <td class="logo-cell">
-                <img src="{{ public_path('img/logo.png') }}" height="36" alt="medicatiereview.ai" style="display:block;"/>
+                <img src="{{ public_path('img/logo.png') }}" height="26" alt="medicatiereview.ai" style="display:block;"/>
                 <div class="contact">{{ $apotheek['adres'] }}<br/>{{ $apotheek['telefoon'] }}</div>
             </td>
             <td class="title-cell" style="text-align: right;">

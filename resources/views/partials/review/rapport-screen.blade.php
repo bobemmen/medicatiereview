@@ -28,7 +28,7 @@
         <div class="bg-[#1A4F82] p-8 rounded-t-sm">
             <div class="flex items-start justify-between">
                 <div>
-                    <x-logo inverted :height="30" class="mb-2" />
+                    <x-logo inverted :height="22" class="mb-2" />
                     <div class="text-white/60 text-xs mt-2">{{ $apotheek['adres'] }} · {{ $apotheek['telefoon'] }}</div>
                 </div>
                 <div class="text-right">
