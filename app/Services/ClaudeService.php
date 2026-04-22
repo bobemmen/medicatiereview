@@ -104,20 +104,27 @@ PROMPT;
 
     private function tool(): array
     {
+        $drpTypes = ['Indicatieprobleem', 'Doseringsafwijking', 'Bijwerking (vermoed)', 'Interactie', 'Adherentieprobleem', 'Onnodig geneesmiddel'];
+
         return [
             'name' => self::TOOL_NAME,
-            'description' => 'Indienen van een volledige medicatiebeoordeling volgens de KNMP-richtlijn, inclusief patiëntoverzicht, anamnese-vragen, farmacotherapeutische analyse, behandelplan en follow-up.',
+            'description' => 'Indienen van een volledige medicatiebeoordeling volgens de KNMP-richtlijn. Lever per medicatie een initiële status en eventuele notitie/DRP-typen, zodat de apotheker alleen nog hoeft te reviewen.',
             'input_schema' => [
                 'type' => 'object',
                 'properties' => [
-                    'patient_overview' => [
+                    'patient' => [
                         'type' => 'object',
                         'properties' => [
-                            'leeftijd' => ['type' => 'string'],
-                            'geslacht' => ['type' => 'string'],
-                            'relevante_voorgeschiedenis' => ['type' => 'array', 'items' => ['type' => 'string']],
+                            'initialen_of_geanonimiseerde_naam' => ['type' => 'string', 'description' => 'bv. "J.d.V." of "Patiënt A" — geen volledige naam'],
+                            'leeftijd' => ['type' => 'integer'],
+                            'geslacht' => ['type' => 'string', 'enum' => ['man', 'vrouw', 'x', 'onbekend']],
+                            'gewicht_kg' => ['type' => 'string', 'description' => 'bv. "82 kg" of "onbekend"'],
+                            'nierfunctie' => ['type' => 'string', 'description' => 'bv. "eGFR 54 (G3a)" of "onbekend"'],
+                            'huisarts' => ['type' => 'string', 'description' => 'bv. "Dr. A. Vermeer" of "onbekend"'],
+                            'allergieen' => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'lijst van bekende allergieën, leeg als er geen zijn'],
+                            'voorgeschiedenis' => ['type' => 'array', 'items' => ['type' => 'string']],
                             'actieve_episodes' => ['type' => 'array', 'items' => ['type' => 'string']],
-                            'relevante_labwaarden' => [
+                            'labwaarden' => [
                                 'type' => 'array',
                                 'items' => [
                                     'type' => 'object',
@@ -130,59 +137,45 @@ PROMPT;
                                     'required' => ['parameter', 'waarde', 'datum', 'klinische_duiding'],
                                 ],
                             ],
-                            'medicatielijst' => [
-                                'type' => 'array',
-                                'items' => [
-                                    'type' => 'object',
-                                    'properties' => [
-                                        'middel' => ['type' => 'string'],
-                                        'dosering' => ['type' => 'string'],
-                                        'indicatie_indien_bekend' => ['type' => 'string'],
-                                    ],
-                                    'required' => ['middel', 'dosering', 'indicatie_indien_bekend'],
-                                ],
-                            ],
                             'ontbrekende_informatie' => ['type' => 'array', 'items' => ['type' => 'string']],
                         ],
-                        'required' => ['leeftijd', 'geslacht', 'relevante_voorgeschiedenis', 'actieve_episodes', 'relevante_labwaarden', 'medicatielijst', 'ontbrekende_informatie'],
+                        'required' => ['initialen_of_geanonimiseerde_naam', 'leeftijd', 'geslacht', 'gewicht_kg', 'nierfunctie', 'huisarts', 'allergieen', 'voorgeschiedenis', 'actieve_episodes', 'labwaarden', 'ontbrekende_informatie'],
+                    ],
+                    'medicatie' => [
+                        'type' => 'array',
+                        'description' => 'Alle actuele geneesmiddelen uit het dossier. Elk middel krijgt een status en, indien van toepassing, een klinische notitie + lijst van DRP-typen.',
+                        'items' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'naam' => ['type' => 'string', 'description' => 'stofnaam'],
+                                'atc_code' => ['type' => 'string', 'description' => 'ATC-code indien bekend, anders lege string'],
+                                'sterkte' => ['type' => 'string', 'description' => 'bv. "500 mg"'],
+                                'frequentie' => ['type' => 'string', 'description' => 'bv. "2×/dag"'],
+                                'indicatie' => ['type' => 'string'],
+                                'status' => [
+                                    'type' => 'string',
+                                    'enum' => ['ok', 'aandacht', 'drp'],
+                                    'description' => 'ok = geen probleem; aandacht = twijfel/monitoren; drp = duidelijk drug-related problem',
+                                ],
+                                'notitie' => ['type' => 'string', 'description' => 'Klinische notitie voor de apotheker als status != ok. Lege string bij status=ok.'],
+                                'drp_typen' => [
+                                    'type' => 'array',
+                                    'items' => ['type' => 'string', 'enum' => $drpTypes],
+                                    'description' => 'Als status=drp of aandacht: welke typen DRP zijn van toepassing',
+                                ],
+                            ],
+                            'required' => ['naam', 'atc_code', 'sterkte', 'frequentie', 'indicatie', 'status', 'notitie', 'drp_typen'],
+                        ],
                     ],
                     'anamnese_vragen' => [
                         'type' => 'array',
                         'items' => [
                             'type' => 'object',
                             'properties' => [
-                                'thema' => ['type' => 'string', 'description' => 'bv. therapietrouw, bijwerkingen, gebruik, zelfmedicatie, wensen patiënt'],
-                                'vraag' => ['type' => 'string', 'description' => 'concrete vraag aan de patiënt'],
+                                'thema' => ['type' => 'string'],
+                                'vraag' => ['type' => 'string'],
                             ],
                             'required' => ['thema', 'vraag'],
-                        ],
-                    ],
-                    'drp_analyse' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'middel' => ['type' => 'string'],
-                                'type_ftp' => ['type' => 'string', 'description' => 'PCNE-categorie, bv. P1.2 behandeling ongewenst'],
-                                'probleem' => ['type' => 'string'],
-                                'oorzaak' => ['type' => 'string'],
-                                'klinische_relevantie' => ['type' => 'string', 'enum' => ['hoog', 'middel', 'laag']],
-                            ],
-                            'required' => ['middel', 'type_ftp', 'probleem', 'oorzaak', 'klinische_relevantie'],
-                        ],
-                    ],
-                    'stopp_start' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'criterium' => ['type' => 'string', 'description' => 'STOPP of START nummer/code'],
-                                'type' => ['type' => 'string', 'enum' => ['STOPP', 'START']],
-                                'middel_of_klasse' => ['type' => 'string'],
-                                'bevinding' => ['type' => 'string'],
-                                'advies' => ['type' => 'string'],
-                            ],
-                            'required' => ['criterium', 'type', 'middel_of_klasse', 'bevinding', 'advies'],
                         ],
                     ],
                     'interacties' => [
@@ -199,50 +192,12 @@ PROMPT;
                             'required' => ['middelen', 'mechanisme', 'klinisch_gevolg', 'ernst', 'actie'],
                         ],
                     ],
-                    'nierfunctie_aandachtspunten' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'middel' => ['type' => 'string'],
-                                'advies' => ['type' => 'string', 'description' => 'dosisaanpassing, staken of monitoren'],
-                                'toelichting' => ['type' => 'string'],
-                            ],
-                            'required' => ['middel', 'advies', 'toelichting'],
-                        ],
-                    ],
-                    'behandelplan' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'prioriteit' => ['type' => 'integer'],
-                                'middel' => ['type' => 'string'],
-                                'voorstel' => ['type' => 'string', 'enum' => ['staken', 'starten', 'dosisaanpassing', 'wisselen', 'monitoren']],
-                                'onderbouwing' => ['type' => 'string'],
-                                'bespreken_met' => ['type' => 'string', 'enum' => ['huisarts', 'patient', 'beiden']],
-                            ],
-                            'required' => ['prioriteit', 'middel', 'voorstel', 'onderbouwing', 'bespreken_met'],
-                        ],
-                    ],
-                    'follow_up' => [
-                        'type' => 'array',
-                        'items' => [
-                            'type' => 'object',
-                            'properties' => [
-                                'actie' => ['type' => 'string'],
-                                'monitoringparameter' => ['type' => 'string'],
-                                'termijn' => ['type' => 'string'],
-                            ],
-                            'required' => ['actie', 'monitoringparameter', 'termijn'],
-                        ],
-                    ],
-                    'samenvatting_voor_patient' => [
+                    'samenvatting' => [
                         'type' => 'string',
-                        'description' => 'Begrijpelijke samenvatting in lekentaal op B1-niveau.',
+                        'description' => 'Korte samenvatting (2-3 zinnen) van de belangrijkste bevindingen voor de apotheker.',
                     ],
                 ],
-                'required' => ['patient_overview', 'anamnese_vragen', 'drp_analyse', 'stopp_start', 'interacties', 'nierfunctie_aandachtspunten', 'behandelplan', 'follow_up', 'samenvatting_voor_patient'],
+                'required' => ['patient', 'medicatie', 'anamnese_vragen', 'interacties', 'samenvatting'],
             ],
         ];
     }

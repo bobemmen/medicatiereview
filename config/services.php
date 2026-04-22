@@ -40,4 +40,11 @@ return [
         'model' => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
     ],
 
+    'apotheek' => [
+        'naam' => env('APOTHEEK_NAAM', 'Apotheek De Linde'),
+        'adres' => env('APOTHEEK_ADRES', 'Apotheekstraat 12 · 1011 AB Amsterdam'),
+        'telefoon' => env('APOTHEEK_TELEFOON', '020-555 0199'),
+        'apotheker' => env('APOTHEEK_APOTHEKER', 'A. Pieters'),
+    ],
+
 ];

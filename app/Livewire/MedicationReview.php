@@ -14,16 +14,33 @@ class MedicationReview extends Component
 {
     use WithFileUploads;
 
-    public bool $disclaimerAccepted = false;
-    public string $step = 'disclaimer';
+    public const DRP_TYPES = [
+        'Indicatieprobleem',
+        'Doseringsafwijking',
+        'Bijwerking (vermoed)',
+        'Interactie',
+        'Adherentieprobleem',
+        'Onnodig geneesmiddel',
+    ];
+
+    public string $step = 'disclaimer'; // disclaimer | input | analyzing | review | rapport | error
     public string $dossierText = '';
     public $upload = null;
     public ?array $analysis = null;
     public ?string $errorMessage = null;
 
+    /** Per-medicatie state tijdens review */
+    public array $checked = [];
+    public array $drps = [];
+    public array $notes = [];
+
+    /** UI state tijdens review */
+    public string $filter = 'alle';
+    public string $search = '';
+    public ?int $expandedMed = null;
+
     public function acceptDisclaimer(): void
     {
-        $this->disclaimerAccepted = true;
         $this->step = 'input';
     }
 
@@ -50,50 +67,40 @@ class MedicationReview extends Component
         $this->errorMessage = null;
         $this->dossierText = <<<'TXT'
 Patiëntgegevens (geanonimiseerd)
-Leeftijd: 82 jaar
-Geslacht: vrouw
-Woonsituatie: zelfstandig, mantelzorg door dochter
+Initialen: J.d.V.
+Geboortedatum: 12-03-1950 (74 jaar)
+Geslacht: man
+Gewicht: 82 kg
+Huisarts: Dr. A. Vermeer
+Allergieën: Penicilline
 
 Voorgeschiedenis:
-- Hypertensie (sinds 2008)
-- Atriumfibrilleren (sinds 2015)
-- Diabetes mellitus type 2 (sinds 2010)
-- Osteoporose met eerdere wervelfractuur (2019)
-- Chronische nierinsufficiëntie (eGFR 42 ml/min)
-- Milde cognitieve achteruitgang (2022)
-- Maagklachten, refluxklachten
-- Val 3 maanden geleden (geen fractuur)
+- Diabetes mellitus type 2 (sinds 2012)
+- Hypertensie
+- Hypercholesterolemie
+- Hartfalen (NYHA II)
+- Boezemfibrilleren
+- Chronische nierinsufficiëntie (G3a)
 
 Actuele episodes:
-- Duizeligheid bij opstaan (sinds 6 weken)
-- Slaapproblemen
-- Obstipatie
+- Vermoeidheid
+- Maagklachten
 
 Recente labwaarden (2 weken geleden):
-- eGFR: 42 ml/min
-- Kalium: 5.2 mmol/L (licht verhoogd)
-- Natrium: 136 mmol/L
-- HbA1c: 52 mmol/mol
-- INR: 2.8
-- Hb: 7.2 mmol/L
+- eGFR: 54 ml/min (G3a)
+- Creatinine: 112 µmol/L
+- HbA1c: 54 mmol/mol
+- INR: 1.8
+- Kalium: 4.3 mmol/L
 
-Huidige medicatie:
-- Acenocoumarol volgens trombosedienst
-- Metoprolol 50 mg 1dd
-- Enalapril 20 mg 1dd
-- Hydrochloorthiazide 25 mg 1dd
-- Metformine 850 mg 2dd
-- Gliclazide 80 mg 1dd
-- Omeprazol 20 mg 1dd (sinds 2014)
-- Alendroninezuur 70 mg 1x per week
-- Calciumcarbonaat/colecalciferol 500/800 1dd
-- Oxazepam 10 mg zn bij slaapproblemen (gebruikt dagelijks volgens dochter)
-- Amitriptyline 25 mg ante noctem (sinds val, tegen slaap)
-- Ibuprofen 400 mg zn bij pijn (gebruikt regelmatig volgens dochter)
-
-Bijzonderheden:
-- Dochter meldt dat patiënt soms vergeet medicatie in te nemen
-- Patiënt klaagt over droge mond en moeite met plassen
+Actuele medicatie:
+- Metformine 500 mg 2×/dag (Diabetes mellitus type 2)
+- Lisinopril 10 mg 1×/dag (Hypertensie)
+- Simvastatine 40 mg 1×/dag (Hypercholesterolemie)
+- Omeprazol 20 mg 1×/dag (Maagprotectie, al sinds 2019)
+- Carvedilol 12,5 mg 2×/dag (Hartfalen)
+- Furosemide 40 mg 1×/dag (Vochtretentie)
+- Acenocoumarol volgens trombosedienst (Boezemfibrilleren)
 TXT;
     }
 
@@ -116,11 +123,71 @@ TXT;
         try {
             $claude = app(ClaudeService::class);
             $this->analysis = $claude->analyseDossier($this->dossierText);
-            $this->step = 'results';
+            $this->initialiseReviewState();
+            $this->step = 'review';
         } catch (\Throwable $e) {
             $this->errorMessage = $e->getMessage();
             $this->step = 'error';
         }
+    }
+
+    private function initialiseReviewState(): void
+    {
+        $this->checked = [];
+        $this->drps = [];
+        $this->notes = [];
+        $this->filter = 'alle';
+        $this->search = '';
+        $this->expandedMed = null;
+
+        foreach ($this->analysis['medicatie'] ?? [] as $index => $med) {
+            $this->checked[$index] = false;
+            $this->notes[$index] = '';
+            $this->drps[$index] = [];
+
+            foreach ($med['drp_typen'] ?? [] as $type) {
+                $this->drps[$index][$type] = true;
+            }
+        }
+    }
+
+    public function toggleChecked(int $id): void
+    {
+        $this->checked[$id] = !($this->checked[$id] ?? false);
+    }
+
+    public function toggleDrp(int $id, string $type): void
+    {
+        $this->drps[$id] = $this->drps[$id] ?? [];
+        $this->drps[$id][$type] = !($this->drps[$id][$type] ?? false);
+    }
+
+    public function toggleExpanded(int $id): void
+    {
+        $this->expandedMed = $this->expandedMed === $id ? null : $id;
+    }
+
+    public function setFilter(string $filter): void
+    {
+        $this->filter = $filter;
+    }
+
+    public function markAsDiscussed(int $id): void
+    {
+        if (!($this->checked[$id] ?? false)) {
+            $this->checked[$id] = true;
+        }
+        $this->expandedMed = null;
+    }
+
+    public function goToRapport(): void
+    {
+        $this->step = 'rapport';
+    }
+
+    public function backToReview(): void
+    {
+        $this->step = 'review';
     }
 
     public function startOver(): void
@@ -128,23 +195,53 @@ TXT;
         $this->dossierText = '';
         $this->analysis = null;
         $this->errorMessage = null;
+        $this->checked = [];
+        $this->drps = [];
+        $this->notes = [];
+        $this->filter = 'alle';
+        $this->search = '';
+        $this->expandedMed = null;
         $this->step = 'input';
     }
 
-    public function downloadMarkdown()
+    public function getFilteredMedsProperty(): array
     {
-        if (!$this->analysis) {
-            return null;
+        $meds = $this->analysis['medicatie'] ?? [];
+        $filter = $this->filter;
+        $search = strtolower(trim($this->search));
+
+        $result = [];
+        foreach ($meds as $index => $med) {
+            if ($filter !== 'alle' && ($med['status'] ?? '') !== $filter) {
+                continue;
+            }
+            if ($search !== '' && !str_contains(strtolower($med['naam'] ?? ''), $search)) {
+                continue;
+            }
+            $result[$index] = $med;
         }
 
-        $markdown = $this->buildMarkdown($this->analysis);
-        $filename = 'medicatiebeoordeling-' . now()->format('Ymd-His') . '.md';
+        return $result;
+    }
 
-        return response()->streamDownload(
-            fn() => print($markdown),
-            $filename,
-            ['Content-Type' => 'text/markdown; charset=UTF-8']
-        );
+    public function getStatusCountsProperty(): array
+    {
+        $meds = $this->analysis['medicatie'] ?? [];
+        $counts = ['alle' => count($meds), 'ok' => 0, 'aandacht' => 0, 'drp' => 0];
+
+        foreach ($meds as $med) {
+            $status = $med['status'] ?? 'ok';
+            if (isset($counts[$status])) {
+                $counts[$status]++;
+            }
+        }
+
+        return $counts;
+    }
+
+    public function getDoneCountProperty(): int
+    {
+        return count(array_filter($this->checked));
     }
 
     public function downloadPdf()
@@ -153,10 +250,16 @@ TXT;
             return null;
         }
 
-        $pdf = Pdf::loadView('pdf.medication-review', ['analysis' => $this->analysis])
-            ->setPaper('a4');
+        $pdf = Pdf::loadView('pdf.medication-review', [
+            'analysis' => $this->analysis,
+            'checked' => $this->checked,
+            'drps' => $this->drps,
+            'notes' => $this->notes,
+            'apotheek' => $this->apotheek(),
+            'generatedAt' => now(),
+        ])->setPaper('a4');
 
-        $filename = 'medicatiebeoordeling-' . now()->format('Ymd-His') . '.pdf';
+        $filename = 'medicatiereview-' . now()->format('Ymd-His') . '.pdf';
 
         return response()->streamDownload(
             fn() => print($pdf->output()),
@@ -165,94 +268,21 @@ TXT;
         );
     }
 
-    public function render()
+    public function apotheek(): array
     {
-        return view('livewire.medication-review');
+        return [
+            'naam' => config('services.apotheek.naam'),
+            'adres' => config('services.apotheek.adres'),
+            'telefoon' => config('services.apotheek.telefoon'),
+            'apotheker' => config('services.apotheek.apotheker'),
+        ];
     }
 
-    private function buildMarkdown(array $a): string
+    public function render()
     {
-        $md = "# Medicatiebeoordeling\n\n";
-        $md .= "*Gegenereerd op " . now()->format('d-m-Y H:i') . " — AI-ondersteuning, te toetsen door zorgprofessional*\n\n---\n\n";
-
-        $p = $a['patient_overview'] ?? [];
-        $md .= "## 1. Patiëntoverzicht\n\n";
-        $md .= "- **Leeftijd:** " . ($p['leeftijd'] ?? '—') . "\n";
-        $md .= "- **Geslacht:** " . ($p['geslacht'] ?? '—') . "\n\n";
-
-        $md .= "### Voorgeschiedenis\n";
-        foreach ($p['relevante_voorgeschiedenis'] ?? [] as $item) {
-            $md .= "- $item\n";
-        }
-
-        $md .= "\n### Actieve episodes\n";
-        foreach ($p['actieve_episodes'] ?? [] as $item) {
-            $md .= "- $item\n";
-        }
-
-        $md .= "\n### Labwaarden\n";
-        foreach ($p['relevante_labwaarden'] ?? [] as $lab) {
-            $md .= "- **{$lab['parameter']}**: {$lab['waarde']} ({$lab['datum']}) — {$lab['klinische_duiding']}\n";
-        }
-
-        $md .= "\n### Medicatielijst\n";
-        foreach ($p['medicatielijst'] ?? [] as $m) {
-            $md .= "- **{$m['middel']}** — {$m['dosering']} ({$m['indicatie_indien_bekend']})\n";
-        }
-
-        if (!empty($p['ontbrekende_informatie'])) {
-            $md .= "\n### Ontbrekende informatie\n";
-            foreach ($p['ontbrekende_informatie'] as $item) {
-                $md .= "- $item\n";
-            }
-        }
-
-        $md .= "\n## 2. Anamnese-vragen (STRIP stap 1)\n\n";
-        foreach ($a['anamnese_vragen'] ?? [] as $v) {
-            $md .= "- **[{$v['thema']}]** {$v['vraag']}\n";
-        }
-
-        $md .= "\n## 3. Farmacotherapeutische analyse\n\n### Drug-related problems (PCNE)\n\n";
-        foreach ($a['drp_analyse'] ?? [] as $d) {
-            $md .= "- **{$d['middel']}** — {$d['type_ftp']} ({$d['klinische_relevantie']})\n  - {$d['probleem']}\n  - Oorzaak: {$d['oorzaak']}\n";
-        }
-
-        $md .= "\n### STOPP/START-NL\n";
-        foreach ($a['stopp_start'] ?? [] as $s) {
-            $md .= "- **[{$s['type']} {$s['criterium']}]** {$s['middel_of_klasse']}\n  - {$s['bevinding']}\n  - Advies: {$s['advies']}\n";
-        }
-
-        $md .= "\n### Interacties\n";
-        foreach ($a['interacties'] ?? [] as $i) {
-            $mid = implode(' + ', $i['middelen'] ?? []);
-            $md .= "- **$mid** ({$i['ernst']})\n  - Mechanisme: {$i['mechanisme']}\n  - Gevolg: {$i['klinisch_gevolg']}\n  - Actie: {$i['actie']}\n";
-        }
-
-        if (!empty($a['nierfunctie_aandachtspunten'])) {
-            $md .= "\n### Nierfunctie\n";
-            foreach ($a['nierfunctie_aandachtspunten'] as $n) {
-                $md .= "- **{$n['middel']}** — {$n['advies']}: {$n['toelichting']}\n";
-            }
-        }
-
-        $md .= "\n## 4. Behandelplan\n\n";
-        foreach ($a['behandelplan'] ?? [] as $b) {
-            $md .= "### Prioriteit {$b['prioriteit']}: {$b['middel']} — {$b['voorstel']}\n";
-            $md .= "{$b['onderbouwing']}\n\n*Bespreken met: {$b['bespreken_met']}*\n\n";
-        }
-
-        $md .= "## 5. Follow-up en monitoring\n\n";
-        foreach ($a['follow_up'] ?? [] as $f) {
-            $md .= "- **{$f['actie']}** — {$f['monitoringparameter']} ({$f['termijn']})\n";
-        }
-
-        if (!empty($a['samenvatting_voor_patient'])) {
-            $md .= "\n## 6. Samenvatting voor de patiënt\n\n";
-            $md .= $a['samenvatting_voor_patient'] . "\n";
-        }
-
-        $md .= "\n---\n\n*Dit is beslissingsondersteuning. De BIG-geregistreerde apotheker/arts blijft verantwoordelijk voor het definitieve oordeel en behandelbeleid.*\n";
-
-        return $md;
+        return view('livewire.medication-review', [
+            'drpTypes' => self::DRP_TYPES,
+            'apotheek' => $this->apotheek(),
+        ]);
     }
 }

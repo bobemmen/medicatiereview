@@ -1,266 +1,412 @@
 @php
-    $p = $analysis['patient_overview'] ?? [];
-    $badge = function ($severity) {
-        $s = strtolower($severity ?? '');
-        return match (true) {
-            in_array($s, ['hoog', 'contra-indicatie', 'ernstig']) => ['#fef2f2', '#b91c1c'],
-            in_array($s, ['middel', 'matig']) => ['#fffbeb', '#b45309'],
-            default => ['#f1f5f9', '#475569'],
-        };
-    };
+    $patient = $analysis['patient'] ?? [];
+    $meds = $analysis['medicatie'] ?? [];
+
+    $statusConfig = [
+        'ok' => ['bg' => '#F0FDF4', 'text' => '#166534', 'dot' => '#16A34A', 'label' => 'Akkoord'],
+        'aandacht' => ['bg' => '#FFFBEB', 'text' => '#92400E', 'dot' => '#D97706', 'label' => 'Aandacht'],
+        'drp' => ['bg' => '#FEF2F2', 'text' => '#991B1B', 'dot' => '#DC2626', 'label' => 'DRP'],
+    ];
+
+    $counts = ['ok' => 0, 'aandacht' => 0, 'drp' => 0];
+    foreach ($meds as $med) {
+        $s = $med['status'] ?? 'ok';
+        if (isset($counts[$s])) {
+            $counts[$s]++;
+        }
+    }
+    $doneCount = count(array_filter($checked ?? []));
+
+    $aandachtMeds = array_filter($meds, fn($m) => in_array($m['status'] ?? 'ok', ['drp', 'aandacht'], true));
+
+    $aanbevMeds = [];
+    foreach ($meds as $id => $m) {
+        $note = ($notes[$id] ?? '') !== '' ? $notes[$id] : ($m['notitie'] ?? '');
+        $hasDrp = !empty(array_filter($drps[$id] ?? []));
+        if ($note !== '' || $hasDrp) {
+            $aanbevMeds[$id] = $m;
+        }
+    }
+
+    $dateNl = $generatedAt->locale('nl')->isoFormat('D MMMM YYYY');
 @endphp
 <!DOCTYPE html>
 <html lang="nl">
 <head>
     <meta charset="UTF-8">
-    <title>Medicatiebeoordeling</title>
+    <title>Medicatiereview Verslag</title>
     <style>
-        @page { margin: 22mm 18mm; }
+        @page { margin: 0; }
         * { box-sizing: border-box; }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10pt;
-            color: #1e293b;
+            font-size: 9.5pt;
+            color: #0F172A;
             line-height: 1.45;
+            margin: 0;
+            padding: 0;
         }
-        h1 { font-size: 18pt; color: #0f172a; margin: 0 0 4pt; }
-        h2 { font-size: 12pt; color: #0f172a; margin: 18pt 0 6pt; padding-bottom: 3pt; border-bottom: 1pt solid #e2e8f0; }
-        h3 { font-size: 10pt; color: #334155; margin: 10pt 0 4pt; }
-        p { margin: 0 0 6pt; }
-        ul { margin: 2pt 0 6pt 16pt; padding: 0; }
-        li { margin-bottom: 2pt; }
-        .subtitle { color: #64748b; font-size: 9pt; margin-bottom: 10pt; }
-        .meta { color: #64748b; font-size: 8.5pt; }
-        .card {
-            border: 0.5pt solid #e2e8f0;
-            border-radius: 4pt;
-            padding: 6pt 8pt;
-            margin-bottom: 6pt;
+        .page { padding: 16mm 16mm 14mm; }
+
+        /* Header */
+        .doc-header {
+            background: #1A4F82;
+            color: #fff;
+            padding: 10mm 16mm;
+            margin: -16mm -16mm 8mm;
         }
-        .strong { font-weight: bold; color: #0f172a; }
-        .muted { color: #64748b; }
-        .em { font-style: italic; }
+        .doc-header table { width: 100%; border-collapse: collapse; }
+        .doc-header td { vertical-align: top; }
+        .doc-header .brand { font-weight: bold; font-size: 13pt; letter-spacing: -0.2pt; }
+        .doc-header .contact { color: rgba(255,255,255,0.65); font-size: 8pt; margin-top: 1mm; }
+        .doc-header .doc-label { color: rgba(255,255,255,0.55); font-size: 7pt; text-transform: uppercase; letter-spacing: 1pt; }
+        .doc-header .doc-title { font-size: 12pt; font-weight: bold; letter-spacing: -0.2pt; margin-top: 1mm; }
+        .doc-header .doc-date { color: rgba(255,255,255,0.7); font-size: 8.5pt; margin-top: 1mm; }
+
+        /* Section headings */
+        h2 {
+            font-size: 7.5pt;
+            color: #1A4F82;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1pt;
+            padding-bottom: 2mm;
+            border-bottom: 1.2pt solid #1A4F82;
+            margin: 0 0 3mm;
+        }
+        .section { margin-bottom: 6mm; }
+
+        /* Patient info */
+        .patient-grid { width: 100%; border-collapse: collapse; }
+        .patient-grid td {
+            padding: 1.2mm 0;
+            border-bottom: 0.4pt solid #F1F5F9;
+            font-size: 8.5pt;
+            vertical-align: top;
+            width: 50%;
+        }
+        .patient-grid .label { color: #64748B; display: inline-block; min-width: 28mm; }
+        .patient-grid .value { color: #0F172A; font-weight: 500; }
+
+        .allergie-row { margin-top: 2mm; font-size: 8.5pt; }
+        .allergie-row .label { color: #64748B; margin-right: 2mm; }
+        .allergie { display: inline-block; background: #FEF2F2; color: #991B1B; padding: 0.6mm 2mm; margin-right: 1mm; font-size: 8pt; font-weight: 500; }
+
+        /* Voorgeschiedenis */
+        .vg { margin: 0; padding-left: 5mm; font-size: 8.5pt; color: #334155; }
+        .vg li { margin-bottom: 0.6mm; }
+
+        /* Medication table */
+        .med-table { width: 100%; border-collapse: collapse; font-size: 8pt; }
+        .med-table th {
+            background: #F1F5F9;
+            color: #64748B;
+            font-size: 7pt;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.6pt;
+            padding: 1.5mm 2mm;
+            text-align: left;
+            border: 0.4pt solid #E2E8F0;
+        }
+        .med-table td {
+            padding: 1.8mm 2mm;
+            border: 0.4pt solid #E2E8F0;
+            vertical-align: top;
+        }
+        .med-table tr.alt td { background: #FAFBFC; }
+        .med-table .mono { font-family: DejaVu Sans Mono, monospace; color: #64748B; font-size: 7.5pt; }
+        .med-name { font-weight: bold; color: #0F172A; }
+
+        /* Status badge */
         .badge {
             display: inline-block;
-            padding: 1pt 5pt;
-            border-radius: 3pt;
-            font-size: 8pt;
-            font-weight: bold;
+            padding: 0.4mm 1.6mm;
+            font-size: 7pt;
+            font-weight: 500;
         }
-        .badge-stopp { background: #fee2e2; color: #b91c1c; }
-        .badge-start { background: #d1fae5; color: #065f46; }
-        .badge-prio { background: #0f172a; color: #fff; }
-        .badge-type { background: #f1f5f9; color: #475569; }
-        table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9pt; }
-        th, td { border: 0.5pt solid #e2e8f0; padding: 3pt 5pt; text-align: left; vertical-align: top; }
-        th { background: #f8fafc; color: #475569; font-weight: bold; }
-        .disclaimer {
-            margin-top: 14pt;
-            padding: 8pt;
-            border: 0.5pt solid #fde68a;
-            background: #fffbeb;
+        .badge .dot { display: inline-block; width: 1.2mm; height: 1.2mm; border-radius: 50%; margin-right: 1mm; vertical-align: middle; }
+
+        /* Counts legend */
+        .legend { margin-top: 2mm; font-size: 8pt; color: #64748B; }
+        .legend span { margin-right: 5mm; }
+        .legend .dot { display: inline-block; width: 1.8mm; height: 1.8mm; border-radius: 50%; margin-right: 1mm; vertical-align: middle; }
+
+        /* DRP blocks */
+        .drp-block { padding-bottom: 3mm; margin-bottom: 3mm; border-bottom: 0.4pt solid #E2E8F0; }
+        .drp-block.last { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+        .drp-head { margin-bottom: 1.5mm; }
+        .drp-head .name { font-size: 10pt; font-weight: bold; color: #0F172A; margin-right: 2mm; }
+        .drp-head .detail { color: #64748B; font-size: 8pt; margin-right: 2mm; }
+        .note-box {
+            padding: 1.8mm 2.5mm;
             font-size: 8.5pt;
-            color: #78350f;
+            line-height: 1.5;
+            margin-top: 1.5mm;
         }
-        .summary {
-            margin-top: 10pt;
-            padding: 8pt;
-            border: 0.5pt solid #a7f3d0;
-            background: #ecfdf5;
-            color: #065f46;
-            font-size: 9.5pt;
+        .drp-chip {
+            display: inline-block;
+            background: #FEF2F2;
+            color: #991B1B;
+            padding: 0.4mm 1.8mm;
+            font-size: 7pt;
+            font-weight: 500;
+            margin-right: 1mm;
+            margin-top: 1.5mm;
         }
-        .row { margin-bottom: 5pt; }
+
+        /* Aanbevelingen */
+        .aanbev { margin: 0; padding-left: 5mm; font-size: 8.5pt; color: #334155; }
+        .aanbev li { margin-bottom: 1.2mm; line-height: 1.5; }
+        .aanbev strong { color: #0F172A; }
+        .aanbev .drp-list { color: #64748B; }
+
+        /* Review result */
+        .result-table { width: 100%; border-collapse: separate; border-spacing: 2mm 0; }
+        .result-table td {
+            background: #F1F5F9;
+            padding: 3mm;
+            width: 25%;
+            vertical-align: top;
+        }
+        .result-label { font-size: 7pt; color: #64748B; text-transform: uppercase; letter-spacing: 0.6pt; margin-bottom: 1mm; }
+        .result-value { font-size: 14pt; font-weight: bold; }
+
+        /* Ondertekening */
+        .sign-table { width: 100%; border-collapse: separate; border-spacing: 8mm 0; margin-top: 1mm; }
+        .sign-table td { vertical-align: top; width: 50%; }
+        .sign-label { font-size: 8pt; color: #64748B; margin-bottom: 8mm; }
+        .sign-value { border-bottom: 0.6pt solid #0F172A; padding-bottom: 1mm; font-size: 9.5pt; font-weight: 500; color: #0F172A; }
+
+        /* Footer */
+        .footer {
+            background: #F1F5F9;
+            border-top: 0.4pt solid #E2E8F0;
+            padding: 3mm 16mm;
+            margin: 6mm -16mm -14mm;
+            font-size: 7.5pt;
+            color: #64748B;
+        }
+        .footer table { width: 100%; border-collapse: collapse; }
+        .footer td { vertical-align: middle; }
+        .footer .right { text-align: right; }
     </style>
 </head>
 <body>
 
-    <h1>Medicatiebeoordeling</h1>
-    <p class="subtitle">AI-ondersteuning volgens KNMP-richtlijn — gegenereerd {{ now()->format('d-m-Y H:i') }}</p>
+<div class="page">
 
-    <h2>1. Patiëntoverzicht</h2>
-
-    <div class="row"><span class="muted">Leeftijd:</span> <span class="strong">{{ $p['leeftijd'] ?? '—' }}</span></div>
-    <div class="row"><span class="muted">Geslacht:</span> <span class="strong">{{ $p['geslacht'] ?? '—' }}</span></div>
-
-    @if (!empty($p['relevante_voorgeschiedenis']))
-        <h3>Voorgeschiedenis</h3>
-        <ul>
-            @foreach ($p['relevante_voorgeschiedenis'] as $item)
-                <li>{{ $item }}</li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($p['actieve_episodes']))
-        <h3>Actieve episodes</h3>
-        <ul>
-            @foreach ($p['actieve_episodes'] as $item)
-                <li>{{ $item }}</li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($p['relevante_labwaarden']))
-        <h3>Relevante labwaarden</h3>
+    {{-- Document header --}}
+    <div class="doc-header">
         <table>
-            <thead>
-                <tr><th>Parameter</th><th>Waarde</th><th>Datum</th><th>Duiding</th></tr>
-            </thead>
-            <tbody>
-                @foreach ($p['relevante_labwaarden'] as $lab)
-                    <tr>
-                        <td class="strong">{{ $lab['parameter'] ?? '' }}</td>
-                        <td>{{ $lab['waarde'] ?? '' }}</td>
-                        <td class="muted">{{ $lab['datum'] ?? '' }}</td>
-                        <td>{{ $lab['klinische_duiding'] ?? '' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
+            <tr>
+                <td>
+                    <div class="brand">{{ $apotheek['naam'] }}</div>
+                    <div class="contact">{{ $apotheek['adres'] }} · {{ $apotheek['telefoon'] }}</div>
+                </td>
+                <td style="text-align: right;">
+                    <div class="doc-label">Document</div>
+                    <div class="doc-title">Medicatiereview Verslag</div>
+                    <div class="doc-date">{{ $dateNl }}</div>
+                </td>
+            </tr>
         </table>
-    @endif
-
-    @if (!empty($p['medicatielijst']))
-        <h3>Medicatielijst</h3>
-        <ul>
-            @foreach ($p['medicatielijst'] as $m)
-                <li>
-                    <span class="strong">{{ $m['middel'] ?? '' }}</span>
-                    — {{ $m['dosering'] ?? '' }}
-                    @if (!empty($m['indicatie_indien_bekend']))
-                        <span class="muted">({{ $m['indicatie_indien_bekend'] }})</span>
-                    @endif
-                </li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($p['ontbrekende_informatie']))
-        <h3>Ontbrekende informatie</h3>
-        <ul>
-            @foreach ($p['ontbrekende_informatie'] as $item)
-                <li>{{ $item }}</li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($analysis['anamnese_vragen']))
-        <h2>2. Anamnese-vragen (STRIP stap 1)</h2>
-        <ul>
-            @foreach ($analysis['anamnese_vragen'] as $v)
-                <li>
-                    <span class="badge badge-type">{{ $v['thema'] ?? '' }}</span>
-                    {{ $v['vraag'] ?? '' }}
-                </li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($analysis['drp_analyse']))
-        <h2>3a. Drug-related problems (PCNE)</h2>
-        @foreach ($analysis['drp_analyse'] as $d)
-            @php [$bg, $color] = $badge($d['klinische_relevantie'] ?? ''); @endphp
-            <div class="card">
-                <div>
-                    <span class="strong">{{ $d['middel'] ?? '' }}</span>
-                    <span class="badge" style="background:{{ $bg }}; color:{{ $color }}">{{ $d['klinische_relevantie'] ?? '' }}</span>
-                </div>
-                <div class="muted" style="font-size:8.5pt; margin:1pt 0 3pt;">{{ $d['type_ftp'] ?? '' }}</div>
-                <div>{{ $d['probleem'] ?? '' }}</div>
-                @if (!empty($d['oorzaak']))
-                    <div class="muted" style="margin-top:2pt;"><span class="em">Oorzaak:</span> {{ $d['oorzaak'] }}</div>
-                @endif
-            </div>
-        @endforeach
-    @endif
-
-    @if (!empty($analysis['stopp_start']))
-        <h2>3b. STOPP/START-NL</h2>
-        @foreach ($analysis['stopp_start'] as $s)
-            <div class="card">
-                <div>
-                    <span class="badge {{ ($s['type'] ?? '') === 'STOPP' ? 'badge-stopp' : 'badge-start' }}">
-                        {{ $s['type'] ?? '' }} {{ $s['criterium'] ?? '' }}
-                    </span>
-                    <span class="strong">{{ $s['middel_of_klasse'] ?? '' }}</span>
-                </div>
-                <div style="margin-top:3pt;">{{ $s['bevinding'] ?? '' }}</div>
-                <div class="muted" style="margin-top:2pt;"><span class="em">Advies:</span> {{ $s['advies'] ?? '' }}</div>
-            </div>
-        @endforeach
-    @endif
-
-    @if (!empty($analysis['interacties']))
-        <h2>3c. Interacties</h2>
-        @foreach ($analysis['interacties'] as $i)
-            @php [$bg, $color] = $badge($i['ernst'] ?? ''); @endphp
-            <div class="card">
-                <div>
-                    <span class="strong">{{ implode(' + ', $i['middelen'] ?? []) }}</span>
-                    <span class="badge" style="background:{{ $bg }}; color:{{ $color }}">{{ $i['ernst'] ?? '' }}</span>
-                </div>
-                <div style="margin-top:3pt;"><span class="em">Mechanisme:</span> {{ $i['mechanisme'] ?? '' }}</div>
-                <div><span class="em">Gevolg:</span> {{ $i['klinisch_gevolg'] ?? '' }}</div>
-                <div class="muted"><span class="em">Actie:</span> {{ $i['actie'] ?? '' }}</div>
-            </div>
-        @endforeach
-    @endif
-
-    @if (!empty($analysis['nierfunctie_aandachtspunten']))
-        <h2>3d. Nierfunctie-aandachtspunten</h2>
-        <ul>
-            @foreach ($analysis['nierfunctie_aandachtspunten'] as $n)
-                <li>
-                    <span class="strong">{{ $n['middel'] ?? '' }}</span>
-                    — {{ $n['advies'] ?? '' }}: {{ $n['toelichting'] ?? '' }}
-                </li>
-            @endforeach
-        </ul>
-    @endif
-
-    @if (!empty($analysis['behandelplan']))
-        <h2>4. Voorstel behandelplan (STRIP stap 3)</h2>
-        @foreach ($analysis['behandelplan'] as $b)
-            <div class="card">
-                <div>
-                    <span class="badge badge-prio">#{{ $b['prioriteit'] ?? '?' }}</span>
-                    <span class="strong">{{ $b['middel'] ?? '' }}</span>
-                    <span class="badge badge-type">{{ $b['voorstel'] ?? '' }}</span>
-                </div>
-                <div style="margin-top:3pt;">{{ $b['onderbouwing'] ?? '' }}</div>
-                <div class="meta" style="margin-top:3pt;">Bespreken met: {{ $b['bespreken_met'] ?? '' }}</div>
-            </div>
-        @endforeach
-    @endif
-
-    @if (!empty($analysis['follow_up']))
-        <h2>5. Follow-up en monitoring</h2>
-        <table>
-            <thead>
-                <tr><th>Actie</th><th>Parameter</th><th>Termijn</th></tr>
-            </thead>
-            <tbody>
-                @foreach ($analysis['follow_up'] as $f)
-                    <tr>
-                        <td class="strong">{{ $f['actie'] ?? '' }}</td>
-                        <td>{{ $f['monitoringparameter'] ?? '' }}</td>
-                        <td>{{ $f['termijn'] ?? '' }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    @endif
-
-    @if (!empty($analysis['samenvatting_voor_patient']))
-        <h2>6. Samenvatting voor de patiënt</h2>
-        <div class="summary">{{ $analysis['samenvatting_voor_patient'] }}</div>
-    @endif
-
-    <div class="disclaimer">
-        <span class="strong">Disclaimer:</span> dit verslag is gegenereerd met AI-ondersteuning en bedoeld als beslissingsondersteuning.
-        De BIG-geregistreerde apotheker/arts blijft verantwoordelijk voor het definitieve oordeel en behandelbeleid.
-        Er is geen klinische validatie of CE-markering (MDR).
     </div>
+
+    {{-- Patiëntgegevens --}}
+    <div class="section">
+        <h2>Patiëntgegevens</h2>
+        @php
+            $rows = [
+                ['Patiënt', $patient['initialen_of_geanonimiseerde_naam'] ?? '—'],
+                ['Leeftijd', ($patient['leeftijd'] ?? '—') . ' jaar'],
+                ['Geslacht', ucfirst($patient['geslacht'] ?? '—')],
+                ['Gewicht', $patient['gewicht_kg'] ?? '—'],
+                ['Nierfunctie', $patient['nierfunctie'] ?? '—'],
+                ['Huisarts', $patient['huisarts'] ?? '—'],
+                ['Apotheek', $apotheek['naam']],
+                ['Apotheker', $apotheek['apotheker']],
+            ];
+            $pairs = array_chunk($rows, 2);
+        @endphp
+        <table class="patient-grid">
+            @foreach ($pairs as $pair)
+                <tr>
+                    @foreach ($pair as [$k, $v])
+                        <td><span class="label">{{ $k }}</span><span class="value">{{ $v }}</span></td>
+                    @endforeach
+                </tr>
+            @endforeach
+        </table>
+        @if (!empty($patient['allergieen']))
+            <div class="allergie-row">
+                <span class="label">Allergie(ën):</span>
+                @foreach ($patient['allergieen'] as $a)
+                    <span class="allergie">{{ $a }}</span>
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    {{-- Voorgeschiedenis --}}
+    @if (!empty($patient['voorgeschiedenis']))
+        <div class="section">
+            <h2>Voorgeschiedenis</h2>
+            <ul class="vg">
+                @foreach ($patient['voorgeschiedenis'] as $item)
+                    <li>{{ $item }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    {{-- Overzicht geneesmiddelen --}}
+    <div class="section">
+        <h2>Overzicht geneesmiddelen</h2>
+        <table class="med-table">
+            <thead>
+                <tr>
+                    <th>Geneesmiddel</th>
+                    <th>ATC</th>
+                    <th>Dosis / Frequentie</th>
+                    <th>Indicatie</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($meds as $i => $med)
+                    @php $cfg = $statusConfig[$med['status'] ?? 'ok'] ?? $statusConfig['ok']; @endphp
+                    <tr @if ($i % 2 === 1) class="alt" @endif>
+                        <td class="med-name">{{ $med['naam'] ?? '' }}</td>
+                        <td class="mono">{{ $med['atc_code'] ?? '—' }}</td>
+                        <td>{{ trim(($med['sterkte'] ?? '') . ' ' . ($med['frequentie'] ?? '')) }}</td>
+                        <td>{{ $med['indicatie'] ?? '' }}</td>
+                        <td>
+                            <span class="badge" style="background:{{ $cfg['bg'] }}; color:{{ $cfg['text'] }};">
+                                <span class="dot" style="background:{{ $cfg['dot'] }};"></span>{{ $cfg['label'] }}
+                            </span>
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+        <div class="legend">
+            @foreach (['ok', 'aandacht', 'drp'] as $s)
+                <span>
+                    <span class="dot" style="background:{{ $statusConfig[$s]['dot'] }};"></span>{{ $counts[$s] }}× {{ $statusConfig[$s]['label'] }}
+                </span>
+            @endforeach
+        </div>
+    </div>
+
+    {{-- DRP / Aandachtspunten --}}
+    @if (!empty($aandachtMeds))
+        <div class="section">
+            <h2>Drug Related Problems &amp; Aandachtspunten</h2>
+            @foreach ($aandachtMeds as $id => $med)
+                @php
+                    $note = ($notes[$id] ?? '') !== '' ? $notes[$id] : ($med['notitie'] ?? '');
+                    $drpList = array_keys(array_filter($drps[$id] ?? []));
+                    $cfg = $statusConfig[$med['status'] ?? 'ok'] ?? $statusConfig['ok'];
+                    $isLast = $loop->last;
+                @endphp
+                <div class="drp-block {{ $isLast ? 'last' : '' }}">
+                    <div class="drp-head">
+                        <span class="name">{{ $med['naam'] ?? '' }}</span>
+                        <span class="detail">{{ $med['sterkte'] ?? '' }} · {{ $med['frequentie'] ?? '' }}</span>
+                        <span class="badge" style="background:{{ $cfg['bg'] }}; color:{{ $cfg['text'] }};">
+                            <span class="dot" style="background:{{ $cfg['dot'] }};"></span>{{ $cfg['label'] }}
+                        </span>
+                    </div>
+                    @if ($note)
+                        <div class="note-box" style="background:{{ $cfg['bg'] }}; color:{{ $cfg['text'] }}; border-left: 1.2pt solid {{ $cfg['dot'] }};">
+                            {{ $note }}
+                        </div>
+                    @endif
+                    @if ($drpList)
+                        <div>
+                            @foreach ($drpList as $d)
+                                <span class="drp-chip">{{ $d }}</span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    @endif
+
+    {{-- Aanbevelingen --}}
+    @if (!empty($aanbevMeds))
+        <div class="section">
+            <h2>Aanbevelingen</h2>
+            <ol class="aanbev">
+                @foreach ($aanbevMeds as $id => $med)
+                    @php
+                        $note = ($notes[$id] ?? '') !== '' ? $notes[$id] : ($med['notitie'] ?? '');
+                        $drpList = array_keys(array_filter($drps[$id] ?? []));
+                    @endphp
+                    <li>
+                        <strong>{{ $med['naam'] ?? '' }}</strong>@if ($note) — {{ $note }}@endif
+                        @if ($drpList)
+                            <span class="drp-list">({{ implode(', ', $drpList) }})</span>
+                        @endif
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+    @endif
+
+    {{-- Reviewresultaat --}}
+    <div class="section">
+        <h2>Reviewresultaat</h2>
+        @php
+            $resultCards = [
+                ['Besproken', $doneCount . ' / ' . count($meds), '#0F172A'],
+                ['DRPs', (string) $counts['drp'], '#DC2626'],
+                ['Aandacht', (string) $counts['aandacht'], '#D97706'],
+                ['Akkoord', (string) $counts['ok'], '#16A34A'],
+            ];
+        @endphp
+        <table class="result-table">
+            <tr>
+                @foreach ($resultCards as [$label, $value, $color])
+                    <td>
+                        <div class="result-label">{{ $label }}</div>
+                        <div class="result-value" style="color: {{ $color }};">{{ $value }}</div>
+                    </td>
+                @endforeach
+            </tr>
+        </table>
+    </div>
+
+    {{-- Ondertekening --}}
+    <div class="section">
+        <h2>Ondertekening</h2>
+        <table class="sign-table">
+            <tr>
+                <td>
+                    <div class="sign-label">Apotheker</div>
+                    <div class="sign-value">{{ $apotheek['apotheker'] }}</div>
+                </td>
+                <td>
+                    <div class="sign-label">Datum</div>
+                    <div class="sign-value">{{ $dateNl }}</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    {{-- Footer --}}
+    <div class="footer">
+        <table>
+            <tr>
+                <td>{{ $apotheek['naam'] }} · {{ $apotheek['adres'] }}</td>
+                <td class="right">Vertrouwelijk — bestemd voor de behandelaar</td>
+            </tr>
+        </table>
+    </div>
+
+</div>
 
 </body>
 </html>

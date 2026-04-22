@@ -1,11 +1,44 @@
 @import 'tailwindcss';
 
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../app/Livewire/**/*.php';
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+    --color-brand-dark: #1A4F82;
+    --color-brand: #1D5FA0;
+    --color-brand-light: #EBF3FC;
+    --color-brand-pale: #F5F9FF;
+
+    --color-ink-1: #F1F5F9;
+    --color-ink-2: #E2E8F0;
+    --color-ink-3: #CBD5E1;
+    --color-ink-5: #64748B;
+    --color-ink-7: #334155;
+    --color-ink-9: #0F172A;
+
+    --color-status-ok: #16A34A;
+    --color-status-ok-bg: #F0FDF4;
+    --color-status-ok-text: #166534;
+
+    --color-status-warn: #D97706;
+    --color-status-warn-bg: #FFFBEB;
+    --color-status-warn-text: #92400E;
+
+    --color-status-drp: #DC2626;
+    --color-status-drp-bg: #FEF2F2;
+    --color-status-drp-text: #991B1B;
+}
+
+html, body {
+    font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    background: #F7F9FC;
+    color: #0F172A;
 }
