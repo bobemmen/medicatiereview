@@ -305,11 +305,9 @@ TXT;
             </div>
 
             <label class="block text-sm font-medium text-slate-700 mb-2">Dossiertekst</label>
-            <textarea wire:model.live.debounce.500ms="dossierText" rows="14"
+            <textarea wire:model.blur="dossierText" rows="14"
                 placeholder="Plak hier het geanonimiseerde dossier (voorgeschiedenis, episodes, lab, medicatie)..."
                 class="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono text-slate-800 focus:border-slate-500 focus:ring-1 focus:ring-slate-500"></textarea>
-
-            <div class="mt-2 text-xs text-slate-400">{{ strlen($dossierText) }} tekens</div>
 
             @if ($errorMessage)
                 <div class="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -319,8 +317,7 @@ TXT;
 
             <div class="mt-6 flex justify-end">
                 <button wire:click="analyse"
-                    @disabled(trim($dossierText) === '')
-                    class="rounded-lg bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-medium px-5 py-2.5 text-sm transition">
+                    class="rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 text-sm transition">
                     Start medicatiebeoordeling
                 </button>
             </div>
