@@ -102,6 +102,30 @@ Uitgangspunten:
 - Gebruik Nederlandse medische terminologie
 - Bij onvoldoende informatie: benoem dit in ontbrekende_informatie
 
+## Apotheeksysteem-exportformaten
+
+Dossiers kunnen uit apotheeksystemen komen in gestructureerd tabelformaat. Herken en verwerk deze formaten correct:
+
+### Medicatietabel (kolommen: Startdatum | Einddatum | Naam | Gebruik | Aantal)
+- **Naam**: stofnaam of merknaam in hoofdletters, inclusief farmaceutische vorm en sterkte.
+  Voorbeeld: "DILTIAZEM TABLET MGA 90MG" → stofnaam: diltiazem, vorm: tablet mga, sterkte: 90 mg
+- **Gebruik**: Nederlandse doseercode:
+  - Eerste getal = aantal keer per tijdseenheid
+  - D = per dag, W = per week, M = per maand
+  - Tweede getal = dosis per keer
+  - T = tablet, C = capsule, IJ = injectie, DR = druppels, ZA = zalf/crème/gel, SP = spray, INH = inhalatie
+  - Voorbeelden: "1D1T" = 1×/dag 1 tablet | "2D2T" = 2×/dag 2 tabletten | "1W1IJ" = 1×/week 1 injectie | "1MD1IJ" = 1×/maand 1 injectie | "0" = gebruik gestopt of nul
+- **Einddatum in de toekomst** = actief geneesmiddel, meenemen in analyse
+- **Gebruik = 0 of leeg** = niet actief, weglaten tenzij klinisch relevant
+
+### Andere veelvoorkomende exportvelden
+- PRN / zo nodig: geneesmiddel wordt alleen gebruikt bij klachten
+- GDS / Baxter: geautomatiseerde aflevering (adherentiehulp)
+- ATC-code kan vermeld staan als aparte kolom
+
+Zet de doseercode altijd om naar leesbare Nederlandse tekst in het veld `frequentie`.
+Voorbeeld: "1D1T" → "1×/dag", "2D1T" → "2×/dag", "1MD1IJ" → "1×/maand".
+
 Roep het tool `submit_mbo_analysis` aan met je volledige analyse.
 PROMPT;
     }
@@ -110,6 +134,12 @@ PROMPT;
     {
         return <<<PROMPT
 Voer een volledige medicatiebeoordeling uit op basis van het onderstaande geanonimiseerde patiëntendossier. Roep het tool `submit_mbo_analysis` aan met je bevindingen.
+
+Let op:
+- Als de medicatielijst als tabel staat (kolommen zoals Startdatum | Einddatum | Naam | Gebruik | Aantal), verwerk dan ALLE rijen met een Einddatum in de toekomst of zonder einddatum als actieve medicatie.
+- Zet de Gebruik-code om naar leesbare frequentie (bv. "1D1T" → "1×/dag").
+- Leid sterkte en vorm af uit de Naam (bv. "DILTIAZEM TABLET MGA 90MG" → sterkte: "90 mg", frequentie: "1×/dag").
+- Leid de indicatie af uit de context van het dossier (voorgeschiedenis, diagnoses, episoden). Als de indicatie onduidelijk is, zet dan "onbekend".
 
 === DOSSIER ===
 {$dossierText}
