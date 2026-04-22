@@ -1,4 +1,4 @@
-<div class="flex-1 flex items-center justify-center p-6">
+<div class="flex-1 flex items-center justify-center p-6" wire:init="runAnalysis">
     <div class="max-w-xl w-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-10 text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#E2E8F0] border-t-[#1A4F82] mb-6"></div>
         <h2 class="text-lg font-semibold text-[#0F172A] mb-3">Claude analyseert het dossier</h2>

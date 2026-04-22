@@ -118,7 +118,16 @@ TXT;
             return;
         }
 
+        // Only set the step — the analyzing screen calls runAnalysis() via wire:init
+        // so the browser first renders the loading screen before the API call starts.
         $this->step = 'analyzing';
+    }
+
+    public function runAnalysis(): void
+    {
+        if ($this->step !== 'analyzing') {
+            return;
+        }
 
         try {
             $claude = app(ClaudeService::class);
