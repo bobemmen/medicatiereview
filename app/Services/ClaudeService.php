@@ -32,7 +32,14 @@ class ClaudeService
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
             'max_tokens' => 5000,
-            'system' => $this->systemPrompt(),
+            // Tools + system prompt worden identiek gehergebruikt bij elke review,
+            // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
+            // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
+            'system' => [[
+                'type' => 'text',
+                'text' => $this->systemPrompt(),
+                'cache_control' => ['type' => 'ephemeral'],
+            ]],
             'tools' => [$this->tool()],
             'tool_choice' => ['type' => 'tool', 'name' => self::TOOL_NAME],
             'messages' => [
@@ -48,6 +55,14 @@ class ClaudeService
         }
 
         $payload = $response->json();
+
+        $usage = $payload['usage'] ?? [];
+        Log::info('Claude usage', [
+            'input' => $usage['input_tokens'] ?? null,
+            'output' => $usage['output_tokens'] ?? null,
+            'cache_creation' => $usage['cache_creation_input_tokens'] ?? null,
+            'cache_read' => $usage['cache_read_input_tokens'] ?? null,
+        ]);
 
         foreach ($payload['content'] ?? [] as $block) {
             if (($block['type'] ?? '') === 'tool_use' && ($block['name'] ?? '') === self::TOOL_NAME) {
