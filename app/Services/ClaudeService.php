@@ -29,7 +29,7 @@ class ClaudeService
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 8000,
+            'max_tokens' => 5000,
             'system' => $this->systemPrompt(),
             'messages' => [
                 [

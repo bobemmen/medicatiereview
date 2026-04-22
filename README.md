@@ -8,7 +8,7 @@ Publiek toegankelijke webapp die apothekers ondersteunt bij een gestructureerde 
 
 - **Laravel 13** + **Livewire 4** — single-file component in `resources/views/components/⚡medication-review.blade.php`
 - **Tailwind CSS v4** via Vite
-- **Anthropic Claude API** (`claude-opus-4-7`) — server-side, key nooit in de browser
+- **Anthropic Claude API** (`claude-sonnet-4-6`) — server-side, key nooit in de browser
 - **smalot/pdfparser** + **phpoffice/phpword** voor PDF/DOCX-extractie
 - Geen database, geen persistente opslag — session- en cache-driver op `cookie`/`file`
 
@@ -31,7 +31,7 @@ App draait dan op [http://127.0.0.1:8000](http://127.0.0.1:8000).
 | Variabele | Vereist | Default | Doel |
 |-----------|---------|---------|------|
 | `ANTHROPIC_API_KEY` | ja | — | API-key voor Claude |
-| `ANTHROPIC_MODEL` | nee | `claude-opus-4-7` | Claude-model |
+| `ANTHROPIC_MODEL` | nee | `claude-sonnet-4-6` | Claude-model |
 | `APP_KEY` | ja | — | Wordt gegenereerd via `php artisan key:generate` |
 | `APP_URL` | nee | — | Publieke URL voor de deployment |
 
