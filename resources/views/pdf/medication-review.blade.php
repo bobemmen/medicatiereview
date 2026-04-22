@@ -50,15 +50,23 @@
 
         /* Header */
         .doc-header {
-            background: #1A4F82;
-            color: #fff;
-            padding: 10mm 16mm;
             margin: -16mm -16mm 8mm;
+            border-collapse: collapse;
+            width: calc(100% + 32mm);
         }
-        .doc-header table { width: 100%; border-collapse: collapse; }
-        .doc-header td { vertical-align: top; }
-        .doc-header .brand { font-weight: bold; font-size: 13pt; letter-spacing: -0.2pt; display: none; }
-        .doc-header .contact { color: rgba(255,255,255,0.65); font-size: 8pt; margin-top: 1mm; }
+        .doc-header td { vertical-align: middle; }
+        .doc-header .logo-cell {
+            background: #ffffff;
+            padding: 7mm 10mm;
+            width: 55mm;
+            border-right: 0.5pt solid #E2E8F0;
+        }
+        .doc-header .title-cell {
+            background: #1A4F82;
+            padding: 7mm 10mm;
+            color: #fff;
+        }
+        .doc-header .contact { color: #64748B; font-size: 7.5pt; margin-top: 1.5mm; }
         .doc-header .doc-label { color: rgba(255,255,255,0.55); font-size: 7pt; text-transform: uppercase; letter-spacing: 1pt; }
         .doc-header .doc-title { font-size: 12pt; font-weight: bold; letter-spacing: -0.2pt; margin-top: 1mm; }
         .doc-header .doc-date { color: rgba(255,255,255,0.7); font-size: 8.5pt; margin-top: 1mm; }
@@ -197,21 +205,19 @@
 <div class="page">
 
     {{-- Document header --}}
-    <div class="doc-header">
-        <table>
-            <tr>
-                <td>
-                    <img src="{{ public_path('img/logo.svg') }}" height="32" alt="medicatiereview.ai" style="display:block; margin-bottom:2mm;"/>
-                    <div class="contact">{{ $apotheek['adres'] }} · {{ $apotheek['telefoon'] }}</div>
-                </td>
-                <td style="text-align: right;">
-                    <div class="doc-label">Document</div>
-                    <div class="doc-title">Medicatiereview Verslag</div>
-                    <div class="doc-date">{{ $dateNl }}</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+    <table class="doc-header">
+        <tr>
+            <td class="logo-cell">
+                <img src="{{ public_path('img/logo.png') }}" height="36" alt="medicatiereview.ai" style="display:block;"/>
+                <div class="contact">{{ $apotheek['adres'] }}<br/>{{ $apotheek['telefoon'] }}</div>
+            </td>
+            <td class="title-cell" style="text-align: right;">
+                <div class="doc-label">Document</div>
+                <div class="doc-title">Medicatiereview Verslag</div>
+                <div class="doc-date">{{ $dateNl }}</div>
+            </td>
+        </tr>
+    </table>
 
     {{-- Patiëntgegevens --}}
     <div class="section">
