@@ -31,7 +31,7 @@ class ClaudeService
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 8000,
+            'max_tokens' => 6000,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
             // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
@@ -107,9 +107,14 @@ Je gebruikt bij je analyse:
 Uitgangspunten:
 - De doelgroep is kwetsbare ouderen (≥ 65 jaar) met polyfarmacie (≥ 5 chronische geneesmiddelen)
 - Geef nooit definitieve behandeladviezen: je levert beslissingsondersteuning die door een BIG-geregistreerde zorgprofessional moet worden getoetst
-- Wees beknopt, klinisch concreet en onderbouw bevindingen waar mogelijk met evidence-niveau of richtlijn
 - Gebruik Nederlandse medische terminologie
 - Bij onvoldoende informatie: benoem dit in ontbrekende_informatie
+
+## Beknoptheid (belangrijk voor responsegrootte)
+- Neem in `labwaarden` MAXIMAAL 6 waarden op: de meest recente én klinisch relevante (afwijkend of voor medicatie relevant, bv. eGFR, HbA1c, kalium, natrium, creatinine). Laat labwaarden-historie weg — alleen de laatste meting van elke relevante parameter.
+- Houd `klinische_duiding` per labwaarde op max 1 korte zin.
+- Houd `notitie` per medicatie op max 2 korte zinnen — concreet en klinisch.
+- Gebruik korte bullets-achtige zinnen, geen herhaling.
 
 ## Apotheeksysteem-exportformaten
 
