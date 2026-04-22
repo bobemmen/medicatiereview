@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 100" fill="none">
+  <!-- Icon box -->
+  <rect x="0" y="5" width="90" height="90" rx="18" fill="#D6E8FA"/>
+
+  <!-- AI text -->
+  <text x="9" y="42" font-family="Arial, sans-serif" font-size="26" font-weight="800" fill="#1A3F82">AI</text>
+
+  <!-- Capsule pill (tilted ~-45°): two halves -->
+  <g transform="translate(50,38) rotate(-45)">
+    <!-- White cap (top half) -->
+    <rect x="-8" y="-22" width="16" height="22" rx="8" fill="white"/>
+    <!-- Blue body (bottom half) -->
+    <rect x="-8" y="0" width="16" height="22" rx="8" fill="#1A4F9C"/>
+    <!-- Dividing line -->
+    <line x1="-8" y1="0" x2="8" y2="0" stroke="#1A4F9C" stroke-width="1.2"/>
+  </g>
+
+  <!-- Round tablet with prohibition line -->
+  <circle cx="44" cy="68" r="14" stroke="#1A4F9C" stroke-width="2.5" fill="white"/>
+  <line x1="34" y1="75" x2="54" y2="61" stroke="#1A4F9C" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Wordmark -->
+  <text x="106" y="66" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#1A2F6B" letter-spacing="-0.5">medicatiereview</text>
+  <text x="374" y="66" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#2563C4" letter-spacing="-0.5">.ai</text>
+</svg>

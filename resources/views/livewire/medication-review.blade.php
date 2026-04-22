@@ -6,8 +6,7 @@
 
     {{-- Topbar --}}
     <div class="h-[52px] bg-[#1A4F82] flex items-center px-5 gap-3 shrink-0">
-        <x-logo inverted />
-        <span class="text-white font-semibold text-[15px]">{{ $apotheek['naam'] }}</span>
+        <x-logo inverted :height="28" />
         <span class="text-white/30 text-[13px]">·</span>
         <span class="text-white/65 text-[13px]">
             @switch($step)

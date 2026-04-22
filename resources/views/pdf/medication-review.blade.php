@@ -57,7 +57,7 @@
         }
         .doc-header table { width: 100%; border-collapse: collapse; }
         .doc-header td { vertical-align: top; }
-        .doc-header .brand { font-weight: bold; font-size: 13pt; letter-spacing: -0.2pt; }
+        .doc-header .brand { font-weight: bold; font-size: 13pt; letter-spacing: -0.2pt; display: none; }
         .doc-header .contact { color: rgba(255,255,255,0.65); font-size: 8pt; margin-top: 1mm; }
         .doc-header .doc-label { color: rgba(255,255,255,0.55); font-size: 7pt; text-transform: uppercase; letter-spacing: 1pt; }
         .doc-header .doc-title { font-size: 12pt; font-weight: bold; letter-spacing: -0.2pt; margin-top: 1mm; }
@@ -201,7 +201,7 @@
         <table>
             <tr>
                 <td>
-                    <div class="brand">{{ $apotheek['naam'] }}</div>
+                    <img src="{{ public_path('img/logo.svg') }}" height="32" alt="medicatiereview.ai" style="display:block; margin-bottom:2mm;"/>
                     <div class="contact">{{ $apotheek['adres'] }} · {{ $apotheek['telefoon'] }}</div>
                 </td>
                 <td style="text-align: right;">
