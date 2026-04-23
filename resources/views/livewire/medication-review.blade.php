@@ -6,7 +6,7 @@
 
     {{-- Topbar --}}
     <div class="h-[52px] bg-[#1A4F82] flex items-center px-5 gap-3 shrink-0">
-        <x-logo inverted :height="20" />
+        <x-logo inverted :height="18" />
         <span class="text-white/30 text-[13px]">·</span>
         <span class="text-white/65 text-[13px]">
             @switch($step)
@@ -46,10 +46,6 @@
                 Download PDF
             </button>
         @endif
-
-        <div class="w-[30px] h-[30px] rounded-full bg-white/20 flex items-center justify-center text-white text-[11px] font-semibold ml-1">
-            {{ strtoupper(substr($apotheek['apotheker'] ?? 'AP', 0, 2)) }}
-        </div>
     </div>
 
     {{-- Body --}}
