@@ -17,16 +17,10 @@ class ClaudeService
     // en rond 3-5x sneller dan Sonnet, wat 502's op de Cloud-proxy voorkomt.
     private const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
 
-    // Ook de analyse draait op Haiku 4.5: Sonnet 4.6 haalt ~75 tok/s en loopt bij
-    // een volledige MBO-output (~5000 tokens) over de 60s Laravel Cloud proxy-timeout.
-    // Haiku 4.5 genereert 150-200 tok/s en levert voor deze gestructureerde tool-use
-    // taak (na de summary-filter-stap) vergelijkbare klinische kwaliteit op.
-    private const ANALYSIS_MODEL = 'claude-haiku-4-5-20251001';
-
     public function __construct()
     {
         $this->apiKey = (string) config('services.anthropic.key');
-        $this->model = (string) config('services.anthropic.model');
+        $this->model  = (string) config('services.anthropic.model');
     }
 
     /**
@@ -135,10 +129,7 @@ PROMPT;
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
-            'model' => self::ANALYSIS_MODEL,
-            // Haiku 4.5 haalt ~150-200 tok/s. Bij max_tokens 5000 is de generatie
-            // ~25-35s; ruim binnen de 60s Laravel Cloud proxy-timeout. 5000 tokens
-            // geeft voldoende ruimte voor een volledige MBO zonder afkapping.
+            'model' => $this->model,
             'max_tokens' => 5000,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
@@ -166,7 +157,7 @@ PROMPT;
 
         $usage = $payload['usage'] ?? [];
         Log::info('Claude usage', [
-            'model' => self::ANALYSIS_MODEL,
+            'model' => $this->model,
             'input' => $usage['input_tokens'] ?? null,
             'output' => $usage['output_tokens'] ?? null,
             'cache_creation' => $usage['cache_creation_input_tokens'] ?? null,
