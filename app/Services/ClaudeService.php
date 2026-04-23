@@ -146,7 +146,10 @@ PROMPT;
         ->withOptions(['stream' => true])
         ->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 5000,
+            // Met streaming raken we de proxy-timeout niet meer — heartbeats houden
+            // de verbinding actief. 8000 tokens geeft ruimte voor 15+ medicaties
+            // inclusief alle notities, interacties en anamnese-vragen.
+            'max_tokens' => 8000,
             'stream' => true,
             'system' => [[
                 'type' => 'text',
