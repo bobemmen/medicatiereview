@@ -128,7 +128,11 @@ PROMPT;
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
             'model' => $this->model,
-            'max_tokens' => 6000,
+            // Hard cap op output: de Laravel Cloud proxy-timeout ligt rond 60s,
+            // en Sonnet 4.6 genereert ~75 tok/s. 3500 tokens ≈ 45s generatie —
+            // comfortabel binnen de limiet. De brevity-instructies in het
+            // system prompt zorgen dat dit ruim voldoende is voor een MBO.
+            'max_tokens' => 3500,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
             // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
@@ -207,11 +211,15 @@ Uitgangspunten:
 - Gebruik Nederlandse medische terminologie
 - Bij onvoldoende informatie: benoem dit in ontbrekende_informatie
 
-## Beknoptheid (belangrijk voor responsegrootte)
-- Neem in `labwaarden` MAXIMAAL 6 waarden op: de meest recente én klinisch relevante (afwijkend of voor medicatie relevant, bv. eGFR, HbA1c, kalium, natrium, creatinine). Laat labwaarden-historie weg — alleen de laatste meting van elke relevante parameter.
-- Houd `klinische_duiding` per labwaarde op max 1 korte zin.
-- Houd `notitie` per medicatie op max 2 korte zinnen — concreet en klinisch.
-- Gebruik korte bullets-achtige zinnen, geen herhaling.
+## Beknoptheid (STRIKT — je hebt ~3500 output-tokens totaal)
+- `labwaarden`: MAXIMAAL 6 waarden, alleen de meest recente én klinisch relevante (eGFR, HbA1c, kalium, natrium, creatinine, INR). Géén historie.
+- `klinische_duiding` per labwaarde: max 1 korte zin (≤ 15 woorden).
+- `notitie` per medicatie: max 2 korte zinnen. Bij `status=ok`: lege string.
+- `anamnese_vragen`: MAXIMAAL 6 vragen, alleen de klinisch meest relevante.
+- `interacties`: MAXIMAAL 5, alleen interacties van matig of ernstiger niveau.
+- `mechanisme`, `klinisch_gevolg`, `actie`: elk max 1 korte zin.
+- `samenvatting`: 2-3 zinnen, niet meer.
+- Gebruik korte, compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
 
 ## Apotheeksysteem-exportformaten
 
