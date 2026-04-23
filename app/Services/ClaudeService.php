@@ -13,6 +13,10 @@ class ClaudeService
     private string $apiUrl = 'https://api.anthropic.com/v1/messages';
     private const TOOL_NAME = 'submit_mbo_analysis';
 
+    // Samenvatten is een extractie-taak; Haiku is daar ruim snel/goed genoeg voor
+    // en rond 3-5x sneller dan Sonnet, wat 502's op de Cloud-proxy voorkomt.
+    private const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
+
     public function __construct()
     {
         $this->apiKey = (string) config('services.anthropic.key');
@@ -44,8 +48,8 @@ class ClaudeService
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
         ])->timeout(90)->post($this->apiUrl, [
-            'model' => $this->model,
-            'max_tokens' => 2500,
+            'model' => self::SUMMARY_MODEL,
+            'max_tokens' => 2000,
             'system' => $this->summarySystemPrompt(),
             'messages' => [
                 [
@@ -63,6 +67,7 @@ class ClaudeService
 
         $usage = $payload['usage'] ?? [];
         Log::info('Claude summary usage', [
+            'model' => self::SUMMARY_MODEL,
             'input' => $usage['input_tokens'] ?? null,
             'output' => $usage['output_tokens'] ?? null,
         ]);
