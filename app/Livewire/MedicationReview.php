@@ -241,22 +241,32 @@ TXT;
         $this->step = 'summarizing';
     }
 
-    public function runAnalysis(): void
+    /**
+     * Callback vanuit de streaming-frontend wanneer de analyse succesvol is afgerond.
+     * De controller heeft de rate-limit al opgehoogd; hier alleen nog state opbouwen.
+     */
+    public function setAnalysisResult(array $analysis): void
     {
         if ($this->step !== 'analyzing') {
             return;
         }
 
-        try {
-            $claude = app(ClaudeService::class);
-            $this->analysis = $claude->analyseDossier($this->dossierText);
-            $this->incrementReviewCount();
-            $this->initialiseReviewState();
-            $this->step = 'review';
-        } catch (\Throwable $e) {
-            $this->errorMessage = $e->getMessage();
-            $this->step = 'error';
+        $this->analysis = $analysis;
+        $this->initialiseReviewState();
+        $this->step = 'review';
+    }
+
+    /**
+     * Callback vanuit de streaming-frontend bij een fout tijdens de analyse.
+     */
+    public function setAnalysisError(string $message): void
+    {
+        if ($this->step !== 'analyzing') {
+            return;
         }
+
+        $this->errorMessage = $message !== '' ? $message : 'Onbekende fout tijdens de analyse.';
+        $this->step = 'error';
     }
 
     private function initialiseReviewState(): void

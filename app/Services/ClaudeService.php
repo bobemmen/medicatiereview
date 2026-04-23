@@ -118,6 +118,145 @@ Voeg NIET je eigen klinische oordeel of aanbevelingen toe — dat komt pas in de
 PROMPT;
     }
 
+    /**
+     * Streaming-variant van analyseDossier: yielded events zodat de caller de SSE-heartbeat
+     * naar de browser kan doorsturen en de Laravel Cloud proxy-idle-timeout niet raakt.
+     *
+     * Yield-events:
+     *   ['heartbeat', null]              — bij elke token-chunk van Anthropic
+     *   ['result', array $analysis]      — eenmalig aan het einde met de geparseerde analyse
+     *
+     * Gooit RuntimeException bij API-fouten, afgekapte output of lege medicatie.
+     *
+     * @return \Generator<array{0: string, 1: mixed}>
+     */
+    public function streamAnalyseDossier(string $dossierText): \Generator
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('ANTHROPIC_API_KEY ontbreekt. Stel deze in via .env of de Laravel Cloud omgevingsvariabelen.');
+        }
+
+        $response = Http::withHeaders([
+            'x-api-key' => $this->apiKey,
+            'anthropic-version' => '2023-06-01',
+            'content-type' => 'application/json',
+            'accept' => 'text/event-stream',
+        ])
+        ->timeout(180)
+        ->withOptions(['stream' => true])
+        ->post($this->apiUrl, [
+            'model' => $this->model,
+            'max_tokens' => 5000,
+            'stream' => true,
+            'system' => [[
+                'type' => 'text',
+                'text' => $this->systemPrompt(),
+                'cache_control' => ['type' => 'ephemeral'],
+            ]],
+            'tools' => [$this->tool()],
+            'tool_choice' => ['type' => 'tool', 'name' => self::TOOL_NAME],
+            'messages' => [
+                ['role' => 'user', 'content' => $this->userPrompt($dossierText)],
+            ],
+        ]);
+
+        $body = $response->toPsrResponse()->getBody();
+
+        if ($response->status() >= 400) {
+            throw new RuntimeException('Claude API fout: ' . $response->status() . ' — ' . (string) $body);
+        }
+        $buffer = '';
+        $toolInputJson = '';
+        $stopReason = null;
+        $sawToolUse = false;
+
+        while (!$body->eof()) {
+            $chunk = $body->read(4096);
+            if ($chunk === '') {
+                continue;
+            }
+            $buffer .= $chunk;
+
+            while (($pos = strpos($buffer, "\n\n")) !== false) {
+                $eventBlock = substr($buffer, 0, $pos);
+                $buffer = substr($buffer, $pos + 2);
+
+                $eventName = null;
+                $dataLine = null;
+                foreach (explode("\n", $eventBlock) as $line) {
+                    if (str_starts_with($line, 'event: ')) {
+                        $eventName = substr($line, 7);
+                    } elseif (str_starts_with($line, 'data: ')) {
+                        $dataLine = ($dataLine === null ? '' : $dataLine . "\n") . substr($line, 6);
+                    }
+                }
+
+                if ($dataLine === null) {
+                    continue;
+                }
+
+                $payload = json_decode($dataLine, true);
+                if (!is_array($payload)) {
+                    continue;
+                }
+
+                $type = $payload['type'] ?? $eventName;
+
+                if ($type === 'content_block_start') {
+                    $block = $payload['content_block'] ?? [];
+                    if (($block['type'] ?? '') === 'tool_use' && ($block['name'] ?? '') === self::TOOL_NAME) {
+                        $sawToolUse = true;
+                    }
+                    yield ['heartbeat', null];
+                } elseif ($type === 'content_block_delta') {
+                    $delta = $payload['delta'] ?? [];
+                    if ($sawToolUse && ($delta['type'] ?? '') === 'input_json_delta') {
+                        $toolInputJson .= $delta['partial_json'] ?? '';
+                    }
+                    // Elke delta is een hartbeat — houdt de proxy-verbinding actief,
+                    // óók als Claude eerst een tekstblok streamt voor de tool_use.
+                    yield ['heartbeat', null];
+                } elseif ($type === 'ping' || $type === 'message_start' || $type === 'content_block_stop') {
+                    yield ['heartbeat', null];
+                } elseif ($type === 'message_delta') {
+                    $delta = $payload['delta'] ?? [];
+                    if (isset($delta['stop_reason'])) {
+                        $stopReason = $delta['stop_reason'];
+                    }
+                } elseif ($type === 'error') {
+                    $err = $payload['error'] ?? [];
+                    $msg = $err['message'] ?? 'Onbekende Claude-streamfout';
+                    throw new RuntimeException('Claude API streamfout: ' . $msg);
+                }
+            }
+        }
+
+        Log::info('Claude stream usage', [
+            'model' => $this->model,
+            'stop_reason' => $stopReason,
+            'tool_input_chars' => strlen($toolInputJson),
+        ]);
+
+        if ($stopReason === 'max_tokens') {
+            throw new RuntimeException('Het dossier is te uitgebreid voor één analyse. Verwijder de labuitslagen-geschiedenis (alleen recente waarden nodig) en probeer opnieuw.');
+        }
+
+        if (!$sawToolUse || $toolInputJson === '') {
+            throw new RuntimeException("Geen gestructureerde analyse ontvangen van Claude (stop_reason: " . ($stopReason ?? 'onbekend') . ').');
+        }
+
+        $input = json_decode($toolInputJson, true);
+        if (!is_array($input)) {
+            throw new RuntimeException('Claude-toolrespons kon niet als JSON worden gelezen.');
+        }
+
+        if (empty($input['medicatie'])) {
+            throw new RuntimeException('Claude heeft geen actieve medicatie gevonden in het dossier. Controleer of de medicatieparagraaf aanwezig is en probeer opnieuw.');
+        }
+
+        yield ['result', $input];
+    }
+
     public function analyseDossier(string $dossierText): array
     {
         if ($this->apiKey === '') {
