@@ -2,7 +2,7 @@
     <div class="max-w-2xl w-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-8">
 
         <div class="flex flex-col items-center mb-6 text-center">
-            <x-logo :height="28" class="mb-4" />
+            <x-logo :height="40" class="mb-4" />
             <h1 class="text-xl font-semibold text-[#0F172A] mt-4">Voordat je begint</h1>
             <p class="text-sm text-[#64748B] mt-0.5">Lees deze informatie zorgvuldig door.</p>
         </div>
