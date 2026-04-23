@@ -17,6 +17,12 @@ class ClaudeService
     // en rond 3-5x sneller dan Sonnet, wat 502's op de Cloud-proxy voorkomt.
     private const SUMMARY_MODEL = 'claude-haiku-4-5-20251001';
 
+    // Ook de analyse draait op Haiku 4.5: Sonnet 4.6 haalt ~75 tok/s en loopt bij
+    // een volledige MBO-output (~5000 tokens) over de 60s Laravel Cloud proxy-timeout.
+    // Haiku 4.5 genereert 150-200 tok/s en levert voor deze gestructureerde tool-use
+    // taak (na de summary-filter-stap) vergelijkbare klinische kwaliteit op.
+    private const ANALYSIS_MODEL = 'claude-haiku-4-5-20251001';
+
     public function __construct()
     {
         $this->apiKey = (string) config('services.anthropic.key');
@@ -129,12 +135,11 @@ PROMPT;
             'anthropic-version' => '2023-06-01',
             'content-type' => 'application/json',
         ])->timeout(180)->post($this->apiUrl, [
-            'model' => $this->model,
-            // Hard cap op output: de Laravel Cloud proxy-timeout ligt rond 60s,
-            // en Sonnet 4.6 genereert ~75 tok/s. 3500 tokens ≈ 45s generatie —
-            // comfortabel binnen de limiet. De brevity-instructies in het
-            // system prompt zorgen dat dit ruim voldoende is voor een MBO.
-            'max_tokens' => 3500,
+            'model' => self::ANALYSIS_MODEL,
+            // Haiku 4.5 haalt ~150-200 tok/s. Bij max_tokens 5000 is de generatie
+            // ~25-35s; ruim binnen de 60s Laravel Cloud proxy-timeout. 5000 tokens
+            // geeft voldoende ruimte voor een volledige MBO zonder afkapping.
+            'max_tokens' => 5000,
             // Tools + system prompt worden identiek gehergebruikt bij elke review,
             // dus we cachen die met cache_control (ephemeral, ~5 min TTL).
             // De cache_control marker op het systemblok dekt alles ervoor (= de tools).
@@ -161,6 +166,7 @@ PROMPT;
 
         $usage = $payload['usage'] ?? [];
         Log::info('Claude usage', [
+            'model' => self::ANALYSIS_MODEL,
             'input' => $usage['input_tokens'] ?? null,
             'output' => $usage['output_tokens'] ?? null,
             'cache_creation' => $usage['cache_creation_input_tokens'] ?? null,
@@ -213,15 +219,15 @@ Uitgangspunten:
 - Gebruik Nederlandse medische terminologie
 - Bij onvoldoende informatie: benoem dit in ontbrekende_informatie
 
-## Beknoptheid (STRIKT — je hebt ~3500 output-tokens totaal)
+## Beknoptheid
 - `labwaarden`: MAXIMAAL 6 waarden, alleen de meest recente én klinisch relevante (eGFR, HbA1c, kalium, natrium, creatinine, INR). Géén historie.
-- `klinische_duiding` per labwaarde: max 1 korte zin (≤ 15 woorden).
-- `notitie` per medicatie: max 2 korte zinnen. Bij `status=ok`: lege string.
-- `anamnese_vragen`: MAXIMAAL 6 vragen, alleen de klinisch meest relevante.
-- `interacties`: MAXIMAAL 5, alleen interacties van matig of ernstiger niveau.
-- `mechanisme`, `klinisch_gevolg`, `actie`: elk max 1 korte zin.
-- `samenvatting`: 2-3 zinnen, niet meer.
-- Gebruik korte, compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
+- `klinische_duiding` per labwaarde: max 1 korte zin.
+- `notitie` per medicatie: max 2-3 korte zinnen. Bij `status=ok`: lege string.
+- `anamnese_vragen`: MAXIMAAL 8 vragen, alleen de klinisch relevante.
+- `interacties`: alle interacties van matig of ernstiger niveau — geen lichte/triviale.
+- `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
+- `samenvatting`: 2-4 zinnen met de kernbevindingen.
+- Gebruik compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
 
 ## Apotheeksysteem-exportformaten
 
