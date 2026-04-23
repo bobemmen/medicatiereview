@@ -47,4 +47,9 @@ return [
         'apotheker' => env('APOTHEEK_APOTHEKER', 'A. Pieters'),
     ],
 
+    'demo' => [
+        'daily_limit' => (int) env('DEMO_DAILY_LIMIT', 10),
+        'unlock_code' => env('DEMO_UNLOCK_CODE', 'unlock-mbo-2026'),
+    ],
+
 ];

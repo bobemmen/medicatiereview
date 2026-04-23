@@ -5,6 +5,8 @@ namespace App\Livewire;
 use App\Services\ClaudeService;
 use App\Services\DossierExtractor;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -42,9 +44,84 @@ class MedicationReview extends Component
     public string $search = '';
     public ?int $expandedMed = null;
 
+    /** Demo / rate-limit state */
+    public bool $showUnlockModal = false;
+    public string $unlockInput = '';
+    public ?string $unlockError = null;
+
     public function acceptDisclaimer(): void
     {
         $this->step = 'input';
+    }
+
+    // --------------------------------------------------------------------
+    //  Demo rate-limit & unlock
+    // --------------------------------------------------------------------
+
+    private function dailyLimitKey(): string
+    {
+        return 'mbo_reviews:' . now()->format('Y-m-d') . ':' . request()->ip();
+    }
+
+    public function getReviewsUsedTodayProperty(): int
+    {
+        return (int) Cache::get($this->dailyLimitKey(), 0);
+    }
+
+    public function getDailyLimitProperty(): int
+    {
+        return (int) config('services.demo.daily_limit', 10);
+    }
+
+    public function getIsUnlockedProperty(): bool
+    {
+        return (bool) Session::get('demo_unlocked', false);
+    }
+
+    private function incrementReviewCount(): void
+    {
+        if ($this->isUnlocked) {
+            return;
+        }
+        $key = $this->dailyLimitKey();
+        Cache::put($key, $this->reviewsUsedToday + 1, now()->endOfDay());
+    }
+
+    private function hasReviewsAvailable(): bool
+    {
+        return $this->isUnlocked || $this->reviewsUsedToday < $this->dailyLimit;
+    }
+
+    public function openUnlock(): void
+    {
+        $this->showUnlockModal = true;
+        $this->unlockInput = '';
+        $this->unlockError = null;
+    }
+
+    public function closeUnlock(): void
+    {
+        $this->showUnlockModal = false;
+        $this->unlockInput = '';
+        $this->unlockError = null;
+    }
+
+    public function submitUnlock(): void
+    {
+        $expected = (string) config('services.demo.unlock_code');
+        if ($expected !== '' && hash_equals($expected, $this->unlockInput)) {
+            Session::put('demo_unlocked', true);
+            $this->showUnlockModal = false;
+            $this->unlockInput = '';
+            $this->unlockError = null;
+        } else {
+            $this->unlockError = 'Onjuiste code.';
+        }
+    }
+
+    public function lockDemo(): void
+    {
+        Session::forget('demo_unlocked');
     }
 
     public function updatedUpload(): void
@@ -121,6 +198,11 @@ TXT;
             return;
         }
 
+        if (!$this->hasReviewsAvailable()) {
+            $this->errorMessage = "Je hebt het dagelijkse demo-limiet van {$this->dailyLimit} reviews bereikt. Klik op de Demo-badge rechtsboven om te ontgrendelen of probeer het morgen opnieuw.";
+            return;
+        }
+
         $this->estimatedTokens = ClaudeService::estimateTokens($this->dossierText);
 
         if ($this->estimatedTokens > self::TOKEN_THRESHOLD) {
@@ -175,6 +257,7 @@ TXT;
         try {
             $claude = app(ClaudeService::class);
             $this->analysis = $claude->analyseDossier($this->dossierText);
+            $this->incrementReviewCount();
             $this->initialiseReviewState();
             $this->step = 'review';
         } catch (\Throwable $e) {
