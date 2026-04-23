@@ -29,8 +29,7 @@
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#E2E8F0] border-t-[#1A4F82] mb-6"></div>
         <h2 class="text-lg font-semibold text-[#0F172A] mb-2">Claude maakt een samenvatting</h2>
         <p class="text-xs text-[#64748B] mb-5">
-            Het dossier is groter dan {{ number_format(\App\Livewire\MedicationReview::TOKEN_THRESHOLD, 0, ',', '.') }} tokens ({{ number_format($estimatedTokens, 0, ',', '.') }} geschat).<br/>
-            We extraheren eerst de voor een medicatiereview relevante gegevens zodat je kunt verifiëren wat er wordt doorgestuurd.
+            We extraheren de voor een medicatiereview relevante gegevens zodat je kunt verifiëren wat er wordt doorgestuurd naar de analyse.
         </p>
 
         <div class="relative h-10 overflow-hidden mb-4">

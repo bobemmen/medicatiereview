@@ -204,14 +204,7 @@ TXT;
         }
 
         $this->estimatedTokens = ClaudeService::estimateTokens($this->dossierText);
-
-        if ($this->estimatedTokens > self::TOKEN_THRESHOLD) {
-            // Groot dossier: eerst samenvatten en laten verifiëren door gebruiker.
-            $this->step = 'summarizing';
-        } else {
-            // Klein genoeg: direct door naar analyse.
-            $this->step = 'analyzing';
-        }
+        $this->step = 'summarizing';
     }
 
     public function runSummarize(): void
