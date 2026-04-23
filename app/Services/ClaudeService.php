@@ -97,20 +97,22 @@ Doel: een beknopte, gestructureerde samenvatting die de gebruiker kan controlere
 
 Wat neem je WEL op:
 - Patiëntkenmerken: initialen/pseudoniem, leeftijd/geboortejaar, geslacht, gewicht, huisarts, allergieën
-- Voorgeschiedenis (chronische diagnoses) en actuele episodes/klachten
+- Voorgeschiedenis: ALLE chronische aandoeningen (altijd meenemen), episodes en klachten uit de afgelopen 2 jaar (meenemen), oudere episodes alleen als ze direct relevant zijn voor de huidige medicatie (bv. reden voor een chronisch middel)
 - Kwetsbaarheid / behandelgrenzen / relevante context (baxter, thuiszorg, mantelzorg)
 - ALLE actieve medicatie (naam, sterkte, doseercode + gebruiksfrequentie); stopgezette middelen alleen vermelden als ze klinisch relevant zijn (bv. recent gestopt)
 - Laatste meting van klinisch relevante labwaarden (eGFR, creatinine, HbA1c, kalium, natrium, INR, leverwaarden, glucose) — NIET de hele historie, alleen de meest recente per parameter + datum
+- Vitale functies: bloeddruk (meest recente meting + datum), hartslag/pols (meest recente meting + datum), gewicht als recent beschikbaar — alleen de meest recente waarde, géén reeksen of histories
 - Bekende contra-indicaties en intoleranties
 
 Wat laat je WEG:
 - Oude labwaarden-historie (meerdere waarden van dezelfde parameter over de tijd)
+- Reeksen metingen van bloeddruk, hartslag, gewicht, HbA1c-verloop etc. — alleen de meest recente waarde per parameter, géén tijdlijn
+- Voet-inspecties, oogfundusonderzoek en andere controle-bevindingen zonder directe medicatierelevantie
 - Ketenzorg-registratie-items die niet klinisch zijn (bv. "deelname ketenzorgprogramma: ja")
 - Administratieve labels zonder klinische relevantie
 - Herhalingen
-- Lijsten van alle voet-inspecties, bloeddrukreeksen etc. — alleen de meest recente
 
-Output-formaat: Nederlandse tekst in markdown met duidelijke kopjes (## Patiënt, ## Voorgeschiedenis, ## Actieve medicatie, ## Labwaarden (meest recent), ## Overig relevant). Houd het beknopt (streven naar ~800-1500 woorden), maar volledig genoeg voor een MBO.
+Output-formaat: Nederlandse tekst in markdown met duidelijke kopjes (## Patiënt, ## Voorgeschiedenis, ## Actieve medicatie, ## Labwaarden en vitale functies (meest recent), ## Overig relevant). Houd het beknopt (streven naar ~800-1500 woorden), maar volledig genoeg voor een MBO.
 
 Voeg NIET je eigen klinische oordeel of aanbevelingen toe — dat komt pas in de volgende stap. Je extraheert en structureert alleen.
 PROMPT;
