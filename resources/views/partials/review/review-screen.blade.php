@@ -264,7 +264,7 @@
                             <div class="w-[264px] shrink-0 flex flex-col gap-2">
                                 <div class="text-[10px] text-[#64748B] font-medium uppercase tracking-wider">Notitie / Advies</div>
                                 <textarea wire:model.blur="notes.{{ $id }}"
-                                    placeholder="{{ $med['notitie'] ?? 'Noteer bevindingen en acties...' }}"
+                                    placeholder="Noteer bevindingen en acties..."
                                     class="w-full h-[80px] px-2.5 py-2 border-2 border-[#E2E8F0] rounded-[5px] text-xs text-[#0F172A] resize-none leading-relaxed bg-white outline-none focus:border-[#1A4F82] transition-colors"></textarea>
                                 <button type="button" wire:click="markAsDiscussed({{ $id }})"
                                     class="px-3.5 py-1.5 rounded-[5px] text-xs font-medium inline-flex items-center gap-1.5 transition

@@ -280,7 +280,7 @@ TXT;
 
         foreach ($this->analysis['medicatie'] ?? [] as $index => $med) {
             $this->checked[$index] = false;
-            $this->notes[$index] = '';
+            $this->notes[$index] = $med['notitie'] ?? '';
             $this->drps[$index] = [];
 
             foreach ($med['drp_typen'] ?? [] as $type) {
