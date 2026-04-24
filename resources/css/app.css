@@ -42,3 +42,5 @@ html, body {
     background: #F7F9FC;
     color: #0F172A;
 }
+
+[x-cloak] { display: none !important; }

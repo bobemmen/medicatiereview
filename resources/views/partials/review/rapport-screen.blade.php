@@ -148,6 +148,7 @@
                                 <div class="py-2 px-3 rounded text-xs leading-relaxed mb-1.5"
                                     style="background:{{ $cfg['bg'] }}; color:{{ $cfg['text'] }}; border-left: 3px solid {{ $cfg['dot'] }};">
                                     {{ $note }}
+                                    @include('partials.review.bronnen-refs', ['bronnen' => $med['bronnen'] ?? []])
                                 </div>
                             @endif
                             @if ($drpList)

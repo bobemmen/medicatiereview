@@ -360,6 +360,7 @@ Uitgangspunten:
 - `interacties`: alle interacties van matig of ernstiger niveau — geen lichte/triviale.
 - `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
 - `samenvatting`: 2-4 zinnen met de kernbevindingen.
+- `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen (STOPP/START-NL-criteriumcode zoals "K1" of "A3", NHG-standaardnummer, G-Standaard-interactie, SmPC, KNMP Kennisbank-hoofdstuk). Verzin geen bronnen — bij twijfel: laat de array leeg. Geen URL's.
 - Gebruik compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
 
 ## Apotheeksysteem-exportformaten
@@ -468,8 +469,24 @@ PROMPT;
                                     'items' => ['type' => 'string', 'enum' => $drpTypes],
                                     'description' => 'Als status=drp of aandacht: welke typen DRP zijn van toepassing',
                                 ],
+                                'bronnen' => [
+                                    'type' => 'array',
+                                    'description' => 'Max 3 bronnen die het aandachtspunt/DRP onderbouwen. Alleen vullen bij status=aandacht of drp. Lege array bij status=ok.',
+                                    'items' => [
+                                        'type' => 'object',
+                                        'properties' => [
+                                            'type' => [
+                                                'type' => 'string',
+                                                'enum' => ['STOPP-NL', 'START-NL', 'NHG-standaard', 'KNMP Kennisbank', 'G-Standaard', 'SmPC', 'Farmacotherapeutisch Kompas', 'Overig'],
+                                            ],
+                                            'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer, bv. "STOPP-NL K1 — langwerkende benzodiazepines bij ouderen" of "NHG-Standaard Diabetes mellitus type 2 (M01)"'],
+                                            'toelichting' => ['type' => 'string', 'description' => '1-2 korte zinnen: wat zegt deze bron relevant voor dit middel/deze patiënt?'],
+                                        ],
+                                        'required' => ['type', 'titel', 'toelichting'],
+                                    ],
+                                ],
                             ],
-                            'required' => ['naam', 'atc_code', 'sterkte', 'frequentie', 'indicatie', 'status', 'notitie', 'drp_typen'],
+                            'required' => ['naam', 'atc_code', 'sterkte', 'frequentie', 'indicatie', 'status', 'notitie', 'drp_typen', 'bronnen'],
                         ],
                     ],
                     'anamnese_vragen' => [

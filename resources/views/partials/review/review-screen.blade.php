@@ -217,6 +217,9 @@
                         <div class="w-[24%] py-2.5 px-2 text-xs leading-snug
                             {{ $displayNote !== '' ? 'text-[#334155]' : 'text-[#CBD5E1] italic' }}">
                             {{ $displayNote !== '' ? $displayNote : '—' }}
+                            @if ($displayNote !== '')
+                                @include('partials.review.bronnen-refs', ['bronnen' => $med['bronnen'] ?? []])
+                            @endif
                         </div>
 
                         <div class="w-[9%] py-2.5 px-2 flex justify-center" wire:click.stop>
