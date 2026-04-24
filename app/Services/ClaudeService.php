@@ -147,9 +147,9 @@ PROMPT;
         ->post($this->apiUrl, [
             'model' => $this->model,
             // Met streaming raken we de proxy-timeout niet meer — heartbeats houden
-            // de verbinding actief. 8000 tokens geeft ruimte voor 15+ medicaties
-            // inclusief alle notities, interacties en anamnese-vragen.
-            'max_tokens' => 8000,
+            // de verbinding actief. 16000 tokens geeft ruimte voor 15+ medicaties
+            // inclusief bronnen per aandachtspunt, notities, interacties en anamnese-vragen.
+            'max_tokens' => 16000,
             'stream' => true,
             'system' => [[
                 'type' => 'text',
@@ -471,7 +471,7 @@ PROMPT;
                                 ],
                                 'bronnen' => [
                                     'type' => 'array',
-                                    'description' => 'Max 3 bronnen die het aandachtspunt/DRP onderbouwen. Alleen vullen bij status=aandacht of drp. Lege array bij status=ok.',
+                                    'description' => 'Max 3 bronnen die het aandachtspunt/DRP onderbouwen. Alleen opnemen bij status=aandacht of drp; weglaten (of lege array) bij status=ok.',
                                     'items' => [
                                         'type' => 'object',
                                         'properties' => [
@@ -480,13 +480,12 @@ PROMPT;
                                                 'enum' => ['STOPP-NL', 'START-NL', 'NHG-standaard', 'KNMP Kennisbank', 'G-Standaard', 'SmPC', 'Farmacotherapeutisch Kompas', 'Overig'],
                                             ],
                                             'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer, bv. "STOPP-NL K1 — langwerkende benzodiazepines bij ouderen" of "NHG-Standaard Diabetes mellitus type 2 (M01)"'],
-                                            'toelichting' => ['type' => 'string', 'description' => '1-2 korte zinnen: wat zegt deze bron relevant voor dit middel/deze patiënt?'],
                                         ],
-                                        'required' => ['type', 'titel', 'toelichting'],
+                                        'required' => ['type', 'titel'],
                                     ],
                                 ],
                             ],
-                            'required' => ['naam', 'atc_code', 'sterkte', 'frequentie', 'indicatie', 'status', 'notitie', 'drp_typen', 'bronnen'],
+                            'required' => ['naam', 'atc_code', 'sterkte', 'frequentie', 'indicatie', 'status', 'notitie', 'drp_typen'],
                         ],
                     ],
                     'anamnese_vragen' => [
