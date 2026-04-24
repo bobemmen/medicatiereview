@@ -1,40 +1,42 @@
-<div class="flex-1 flex items-center justify-center p-6"
-     x-data="{
-        steps: [
-            { pct:  6, text: 'Patiëntgegevens inlezen…' },
-            { pct: 13, text: 'Medicatielijst structureren…' },
-            { pct: 21, text: 'ATC-codes opzoeken…' },
-            { pct: 29, text: 'Indicaties en doseringen controleren…' },
-            { pct: 37, text: 'STOPP-criteria toepassen…' },
-            { pct: 45, text: 'START-criteria controleren…' },
-            { pct: 52, text: 'Geneesmiddelinteracties analyseren…' },
-            { pct: 60, text: 'Nierfunctie-aanpassingen beoordelen…' },
-            { pct: 67, text: 'Drug-related problems classificeren…' },
-            { pct: 74, text: 'Klinische notities formuleren…' },
-            { pct: 81, text: 'Aanbevelingen opstellen…' },
-            { pct: 88, text: 'Samenvatting samenstellen…' },
-            { pct: 94, text: 'Analyse afronden…' },
-        ],
-        i: 0,
-        visible: true,
-        get pct()  { return this.steps[this.i]?.pct  ?? 94 },
-        get text() { return this.steps[this.i]?.text ?? '' },
-        advance() {
-            if (this.i >= this.steps.length - 1) return;
-            this.visible = false;
-            setTimeout(() => {
-                this.i++;
-                this.visible = true;
-                const delay = this.i < 4 ? 2800 : this.i < 9 ? 3800 : 4500;
-                setTimeout(() => this.advance(), delay);
-            }, 350);
-        },
-        async startStream() {
-            const token = document.querySelector('meta[name=csrf-token]')?.content;
-            const dossier = @js($dossierText);
+<div class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-xl w-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-10 text-center"
+         x-data="{
+            steps: [
+                { pct:  6, text: 'Patiëntgegevens inlezen…' },
+                { pct: 13, text: 'Medicatielijst structureren…' },
+                { pct: 21, text: 'ATC-codes opzoeken…' },
+                { pct: 29, text: 'Indicaties en doseringen controleren…' },
+                { pct: 37, text: 'STOPP-criteria toepassen…' },
+                { pct: 45, text: 'START-criteria controleren…' },
+                { pct: 52, text: 'Geneesmiddelinteracties analyseren…' },
+                { pct: 60, text: 'Nierfunctie-aanpassingen beoordelen…' },
+                { pct: 67, text: 'Drug-related problems classificeren…' },
+                { pct: 74, text: 'Klinische notities formuleren…' },
+                { pct: 81, text: 'Aanbevelingen opstellen…' },
+                { pct: 88, text: 'Samenvatting samenstellen…' },
+                { pct: 94, text: 'Analyse afronden…' },
+            ],
+            i: 0,
+            visible: true,
+            get pct()  { return this.steps[this.i]?.pct  ?? 94 },
+            get text() { return this.steps[this.i]?.text ?? '' },
+            advance() {
+                if (this.i >= this.steps.length - 1) return;
+                this.visible = false;
+                setTimeout(() => {
+                    this.i++;
+                    this.visible = true;
+                    const delay = this.i < 4 ? 2800 : this.i < 9 ? 3800 : 4500;
+                    setTimeout(() => this.advance(), delay);
+                }, 350);
+            },
+            startStream() {
+                const token = document.querySelector('meta[name=csrf-token]')?.content;
+                const dossier = this.$wire.dossierText;
+                const url = '{{ route('analyze-stream') }}';
+                const wire = this.$wire;
 
-            try {
-                const response = await fetch('{{ route('analyze-stream') }}', {
+                fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -43,63 +45,47 @@
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({ dossier }),
-                });
-
-                if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error('HTTP ' + response.status + ': ' + text.slice(0, 200));
-                }
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-                let buffer = '';
-                let finalResult = null;
-                let gotError = null;
-
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-
-                    let sep;
-                    while ((sep = buffer.indexOf('\n\n')) !== -1) {
-                        const block = buffer.slice(0, sep);
-                        buffer = buffer.slice(sep + 2);
-
-                        let event = 'message';
-                        let data = '';
-                        for (const line of block.split('\n')) {
-                            if (line.startsWith('event: ')) event = line.slice(7);
-                            else if (line.startsWith('data: ')) data += (data ? '\n' : '') + line.slice(6);
-                        }
-                        if (!data) continue;
-
-                        let parsed;
-                        try { parsed = JSON.parse(data); } catch { continue; }
-
-                        if (event === 'result') {
-                            finalResult = parsed;
-                        } else if (event === 'error') {
-                            gotError = parsed?.message || 'Onbekende streamfout';
+                }).then(async (response) => {
+                    if (!response.ok) {
+                        const text = await response.text();
+                        throw new Error('HTTP ' + response.status + ': ' + text.slice(0, 200));
+                    }
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+                    let finalResult = null;
+                    let gotError = null;
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        let sep;
+                        while ((sep = buffer.indexOf('\n\n')) !== -1) {
+                            const block = buffer.slice(0, sep);
+                            buffer = buffer.slice(sep + 2);
+                            let event = 'message';
+                            let data = '';
+                            for (const line of block.split('\n')) {
+                                if (line.startsWith('event: ')) event = line.slice(7);
+                                else if (line.startsWith('data: ')) data += (data ? '\n' : '') + line.slice(6);
+                            }
+                            if (!data) continue;
+                            let parsed;
+                            try { parsed = JSON.parse(data); } catch (e) { continue; }
+                            if (event === 'result') finalResult = parsed;
+                            else if (event === 'error') gotError = parsed?.message || 'Onbekende streamfout';
                         }
                     }
-                }
-
-                if (gotError) {
-                    await $wire.call('setAnalysisError', gotError);
-                } else if (finalResult) {
-                    await $wire.call('setAnalysisResult', finalResult);
-                } else {
-                    await $wire.call('setAnalysisError', 'De analyse is vroegtijdig afgebroken.');
-                }
-            } catch (err) {
-                await $wire.call('setAnalysisError', 'Netwerkfout: ' + (err?.message || err));
+                    if (gotError) await wire.call('setAnalysisError', gotError);
+                    else if (finalResult) await wire.call('setAnalysisResult', finalResult);
+                    else await wire.call('setAnalysisError', 'De analyse is vroegtijdig afgebroken.');
+                }).catch(async (err) => {
+                    await wire.call('setAnalysisError', 'Netwerkfout: ' + (err?.message || err));
+                });
             }
-        },
-     }"
-     x-init="setTimeout(() => advance(), 2800); startStream();">
+         }"
+         x-init="setTimeout(() => advance(), 2800); startStream();">
 
-    <div class="max-w-xl w-full bg-white rounded-lg shadow-sm border border-[#E2E8F0] p-10 text-center">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#E2E8F0] border-t-[#1A4F82] mb-6"></div>
         <h2 class="text-lg font-semibold text-[#0F172A] mb-3">Claude analyseert het dossier</h2>
 
