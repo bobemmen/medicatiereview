@@ -4,12 +4,22 @@
     <span class="inline-flex flex-wrap items-baseline gap-x-0.5 ml-0.5 align-baseline">
         @foreach ($bronnen as $bron)
             @php
-                $type = $bron['type'] ?? 'Overig';
+                $type  = $bron['type']  ?? 'Overig';
                 $titel = $bron['titel'] ?? '';
-                $toelichting = $bron['toelichting'] ?? '';
+                $urls  = [
+                    'STOPP-NL'                    => 'https://www.nhg.org',
+                    'START-NL'                    => 'https://www.nhg.org',
+                    'NHG-standaard'               => 'https://richtlijnen.nhg.org/standaarden',
+                    'KNMP Kennisbank'             => 'https://kennisbank.knmp.nl',
+                    'G-Standaard'                 => 'https://www.z-index.nl',
+                    'SmPC'                        => 'https://www.geneesmiddeleninformatiebank.nl',
+                    'Farmacotherapeutisch Kompas' => 'https://www.farmacotherapeutischkompas.nl',
+                ];
+                $url = $urls[$type] ?? null;
             @endphp
             <span x-data="{ open: false }"
-                @click.outside="open = false"
+                @mouseenter="open = true"
+                @mouseleave="open = false"
                 @keydown.escape.window="open = false"
                 class="relative inline-block">
                 <button type="button"
@@ -22,8 +32,14 @@
                     class="absolute z-30 left-0 mt-1 w-64 bg-white border border-[#E2E8F0] rounded-md shadow-lg p-2.5 text-left normal-case">
                     <div class="text-[9px] font-semibold text-[#1A4F82] uppercase tracking-wider">{{ $type }}</div>
                     <div class="text-xs font-semibold text-[#0F172A] mt-0.5 leading-snug">{{ $titel }}</div>
-                    @if ($toelichting !== '')
-                        <div class="text-[11px] text-[#334155] mt-1 leading-relaxed">{{ $toelichting }}</div>
+                    @if ($url)
+                        <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                            class="inline-flex items-center gap-1 mt-2 text-[11px] text-[#1A4F82] hover:text-[#1D5FA0] hover:underline">
+                            Bekijk bron
+                            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                                <path d="M1.5 8.5l7-7M4 1.5h4.5v4.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
                     @endif
                 </div>
             </span>
