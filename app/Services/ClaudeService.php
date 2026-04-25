@@ -360,7 +360,8 @@ Uitgangspunten:
 - `interacties`: alle interacties van matig of ernstiger niveau — geen lichte/triviale.
 - `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
 - `samenvatting`: 2-4 zinnen met de kernbevindingen.
-- `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen (STOPP/START-NL-criteriumcode zoals "K1" of "A3", NHG-standaardnummer, G-Standaard-interactie, SmPC, KNMP Kennisbank-hoofdstuk). Verzin geen bronnen — bij twijfel: laat de array leeg. Geen URL's.
+- `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen (STOPP/START-NL-criteriumcode zoals "K1" of "A3", NHG-standaardnummer, G-Standaard-interactie, SmPC, KNMP Kennisbank-hoofdstuk). Verzin geen bronnen — bij twijfel: laat de array leeg.
+- `url` per bron: alleen opnemen bij een canonieke deep-link die je exact kent (bv. NHG-Standaard op richtlijnen.nhg.org, Farmacotherapeutisch Kompas preparaat-pagina, Geneesmiddeleninformatiebank SmPC). Verzin geen URLs — bij twijfel: weglaten. Toplevel-homepages niet opnemen (die vullen we zelf in als fallback).
 - Gebruik compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
 
 ## Apotheeksysteem-exportformaten
@@ -480,6 +481,7 @@ PROMPT;
                                                 'enum' => ['STOPP-NL', 'START-NL', 'NHG-standaard', 'KNMP Kennisbank', 'G-Standaard', 'SmPC', 'Farmacotherapeutisch Kompas', 'Overig'],
                                             ],
                                             'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer, bv. "STOPP-NL K1 — langwerkende benzodiazepines bij ouderen" of "NHG-Standaard Diabetes mellitus type 2 (M01)"'],
+                                            'url' => ['type' => 'string', 'description' => 'Volledige canonieke https-URL naar de specifieke pagina van deze bron. Alleen opnemen als je 100% zeker bent van de exacte URL op het officiële brondomein (richtlijnen.nhg.org, www.farmacotherapeutischkompas.nl, www.geneesmiddeleninformatiebank.nl). Bij twijfel: weglaten. Verzin nooit een URL en neem geen toplevel-homepages op.'],
                                         ],
                                         'required' => ['type', 'titel'],
                                     ],
