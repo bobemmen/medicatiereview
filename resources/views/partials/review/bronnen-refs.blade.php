@@ -3,8 +3,8 @@
 @if (!empty($bronnen))
     @php
         $fallbackUrls = [
-            'STOPP-NL'                    => 'https://richtlijnen.nhg.org/standaarden/stopp-start-nl',
-            'START-NL'                    => 'https://richtlijnen.nhg.org/standaarden/stopp-start-nl',
+            'STOPP-NL'                    => 'https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/',
+            'START-NL'                    => 'https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/',
             'NHG-standaard'               => 'https://richtlijnen.nhg.org/standaarden',
             'KNMP Kennisbank'             => 'https://www.farmacotherapeutischkompas.nl',
             'G-Standaard'                 => 'https://www.farmacotherapeutischkompas.nl',

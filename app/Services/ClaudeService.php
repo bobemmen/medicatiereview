@@ -385,7 +385,7 @@ Uitgangspunten:
 - `url` per bron: doe ALTIJD je uiterste best om een specifieke deep-link URL op te nemen. Gebruik de volgende patronen:
   - NHG-standaard → `https://richtlijnen.nhg.org/standaarden/<slug>` (bv. `diabetes-mellitus-type-2`, `hartfalen`, `atriumfibrilleren`, `chronische-nierschade`, `depressie`)
   - Farmacotherapeutisch Kompas → `https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/<eerste-letter>/<stofnaam>` (bv. `/m/metformine`, `/a/atorvastatine`, `/b/bisoprolol`)
-  - STOPP-NL / START-NL → `https://richtlijnen.nhg.org/standaarden/stopp-start-nl` of de meest relevante NHG-pagina over polyfarmacie bij ouderen
+  - STOPP-NL / START-NL → `https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/` (versie 2). Voeg waar mogelijk een hoofdstuk-anker toe op basis van de letter van de criteriumcode, bv. E1/E3 → `#e-cardiovasculaire-belasting`. Gebruik alleen ankers waarvan je de exacte slug zeker weet; bij twijfel laat het anker weg en gebruik de basis-URL.
   - KNMP Kennisbank → gebruik Farmacotherapeutisch Kompas als publiek toegankelijk alternatief (`https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/...`)
   - G-Standaard interactie → gebruik de FK-interactiepagina van het betreffende geneesmiddel op `farmacotherapeutischkompas.nl`
   - SmPC → `https://www.geneesmiddeleninformatiebank.nl` product-pagina voor het betreffende geneesmiddel
@@ -509,7 +509,7 @@ PROMPT;
                                                 'enum' => ['STOPP-NL', 'START-NL', 'NHG-standaard', 'KNMP Kennisbank', 'G-Standaard', 'SmPC', 'Farmacotherapeutisch Kompas', 'Overig'],
                                             ],
                                             'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer, bv. "STOPP-NL K1 — langwerkende benzodiazepines bij ouderen" of "NHG-Standaard Diabetes mellitus type 2 (M01)"'],
-                                            'url' => ['type' => 'string', 'description' => 'Volledige canonieke https-URL naar de specifieke pagina van deze bron. Alleen opnemen als je 100% zeker bent van de exacte URL op het officiële brondomein (richtlijnen.nhg.org, www.farmacotherapeutischkompas.nl, www.geneesmiddeleninformatiebank.nl). Bij twijfel: weglaten. Verzin nooit een URL en neem geen toplevel-homepages op.'],
+                                            'url' => ['type' => 'string', 'description' => 'Volledige canonieke https-URL naar de specifieke pagina van deze bron. Alleen opnemen als je 100% zeker bent van de exacte URL op het officiële brondomein (www.nhg.org/thema/farmacotherapie/stop-nl-v2/, richtlijnen.nhg.org, www.farmacotherapeutischkompas.nl, www.geneesmiddeleninformatiebank.nl). Voor STOPP-NL/START-NL gebruik je altijd de v2-pagina, eventueel met hoofdstuk-anker (bv. #e-cardiovasculaire-belasting). Bij twijfel: weglaten. Verzin nooit een URL en neem geen toplevel-homepages op.'],
                                         ],
                                         'required' => ['type', 'titel'],
                                     ],
