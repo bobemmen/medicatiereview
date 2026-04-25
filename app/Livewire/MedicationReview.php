@@ -43,6 +43,8 @@ class MedicationReview extends Component
     public string $filter = 'alle';
     public string $search = '';
     public ?int $expandedMed = null;
+    public ?string $sortField = null;       // 'naam' | 'status' | null
+    public string $sortDirection = 'asc';   // 'asc' | 'desc'
 
     /** Demo / rate-limit state */
     public bool $showUnlockModal = false;
@@ -277,6 +279,8 @@ TXT;
         $this->filter = 'alle';
         $this->search = '';
         $this->expandedMed = null;
+        $this->sortField = null;
+        $this->sortDirection = 'asc';
 
         foreach ($this->analysis['medicatie'] ?? [] as $index => $med) {
             $this->checked[$index] = false;
@@ -310,6 +314,19 @@ TXT;
         $this->filter = $filter;
     }
 
+    public function setSort(string $field): void
+    {
+        if (!in_array($field, ['naam', 'status'], true)) {
+            return;
+        }
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = $field === 'status' ? 'desc' : 'asc';
+        }
+    }
+
     public function markAsDiscussed(int $id): void
     {
         if (!($this->checked[$id] ?? false)) {
@@ -341,6 +358,8 @@ TXT;
         $this->filter = 'alle';
         $this->search = '';
         $this->expandedMed = null;
+        $this->sortField = null;
+        $this->sortDirection = 'asc';
         $this->step = 'input';
     }
 
@@ -359,6 +378,26 @@ TXT;
                 continue;
             }
             $result[$index] = $med;
+        }
+
+        if ($this->sortField !== null) {
+            $dir = $this->sortDirection === 'desc' ? -1 : 1;
+            $statusRank = ['drp' => 2, 'aandacht' => 1, 'ok' => 0];
+            $field = $this->sortField;
+
+            uasort($result, function (array $a, array $b) use ($dir, $statusRank, $field): int {
+                if ($field === 'naam') {
+                    return strcasecmp($a['naam'] ?? '', $b['naam'] ?? '') * $dir;
+                }
+                $rankA = $statusRank[$a['status'] ?? 'ok'] ?? 0;
+                $rankB = $statusRank[$b['status'] ?? 'ok'] ?? 0;
+                if ($rankA !== $rankB) {
+                    return ($rankA <=> $rankB) * $dir;
+                }
+                $drpA = count($a['drp_typen'] ?? []);
+                $drpB = count($b['drp_typen'] ?? []);
+                return ($drpA <=> $drpB) * $dir;
+            });
         }
 
         return $result;

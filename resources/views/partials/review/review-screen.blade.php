@@ -2,7 +2,6 @@
     $patient = $analysis['patient'] ?? [];
     $meds = $analysis['medicatie'] ?? [];
     $counts = $this->statusCounts;
-    $doneCount = $this->doneCount;
     $filtered = $this->filteredMeds;
 
     $statusConfig = [
@@ -95,19 +94,6 @@
         </div>
 
         <div class="flex-1"></div>
-
-        {{-- Progress --}}
-        <div class="bg-[#F5F9FF] rounded-[6px] p-3 border border-[#E2E8F0] mt-3">
-            <div class="text-[10px] text-[#1A4F82] font-semibold uppercase tracking-wider mb-2">Voortgang</div>
-            <div class="flex items-center gap-2 mb-1">
-                <div class="flex-1 h-[3px] bg-[#E2E8F0] rounded">
-                    <div class="h-full bg-[#1A4F82] rounded transition-all duration-300"
-                        style="width: {{ count($meds) > 0 ? ($doneCount / count($meds)) * 100 : 0 }}%"></div>
-                </div>
-                <span class="text-[11px] text-[#1A4F82] font-semibold">{{ $doneCount }}/{{ count($meds) }}</span>
-            </div>
-            <div class="text-[11px] text-[#64748B]">besproken met patiënt</div>
-        </div>
     </aside>
 
     {{-- Main --}}
@@ -144,17 +130,24 @@
 
         {{-- Table head --}}
         <div class="flex bg-[#F1F5F9] border-b border-[#E2E8F0] px-4 shrink-0">
-            @foreach ([
-                ['', 'w-[4%]'],
-                ['Geneesmiddel', 'w-[20%]'],
-                ['Dosis', 'w-[12%]'],
-                ['Indicatie', 'w-[20%]'],
-                ['Status', 'w-[11%]'],
-                ['Aandachtspunt', 'w-[24%]'],
-                ['Besprkn', 'w-[9%]'],
-            ] as [$label, $width])
-                <div class="{{ $width }} py-2 px-1.5 text-[10px] text-[#64748B] font-medium uppercase tracking-wider">{{ $label }}</div>
-            @endforeach
+            <div class="w-[4%] py-2 px-1.5"></div>
+            <div class="w-[20%] py-2 px-1.5">
+                <button type="button" wire:click="setSort('naam')"
+                    class="inline-flex items-center gap-1 text-[10px] text-[#64748B] font-medium uppercase tracking-wider hover:text-[#1A4F82] transition-colors">
+                    Geneesmiddel
+                    <span class="w-2 inline-block text-[#1A4F82]">{{ $sortField === 'naam' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</span>
+                </button>
+            </div>
+            <div class="w-[12%] py-2 px-1.5 text-[10px] text-[#64748B] font-medium uppercase tracking-wider">Dosis</div>
+            <div class="w-[20%] py-2 px-1.5 text-[10px] text-[#64748B] font-medium uppercase tracking-wider">Indicatie</div>
+            <div class="w-[11%] py-2 px-1.5">
+                <button type="button" wire:click="setSort('status')"
+                    class="inline-flex items-center gap-1 text-[10px] text-[#64748B] font-medium uppercase tracking-wider hover:text-[#1A4F82] transition-colors">
+                    Status
+                    <span class="w-2 inline-block text-[#1A4F82]">{{ $sortField === 'status' ? ($sortDirection === 'asc' ? '↑' : '↓') : '' }}</span>
+                </button>
+            </div>
+            <div class="w-[33%] py-2 px-1.5 text-[10px] text-[#64748B] font-medium uppercase tracking-wider">Aandachtspunt</div>
         </div>
 
         {{-- Rows --}}
@@ -214,19 +207,12 @@
                             @endif
                         </div>
 
-                        <div class="w-[24%] py-2.5 px-2 text-xs leading-snug
+                        <div class="w-[33%] py-2.5 px-2 text-xs leading-snug
                             {{ $displayNote !== '' ? 'text-[#334155]' : 'text-[#CBD5E1] italic' }}">
                             {{ $displayNote !== '' ? $displayNote : '—' }}
                             @if ($displayNote !== '')
                                 @include('partials.review.bronnen-refs', ['bronnen' => $med['bronnen'] ?? []])
                             @endif
-                        </div>
-
-                        <div class="w-[9%] py-2.5 px-2 flex justify-center" wire:click.stop>
-                            <input type="checkbox"
-                                wire:click="toggleChecked({{ $id }})"
-                                @checked($isDone)
-                                class="w-4 h-4 accent-[#1A4F82] cursor-pointer" />
                         </div>
                     </div>
 
@@ -273,9 +259,9 @@
                                         <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
                                             <path d="M1 5l3.5 3.5L11 1" stroke="#16A34A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                                         </svg>
-                                        Besproken
+                                        Advies gewijzigd
                                     @else
-                                        Markeer als besproken →
+                                        Wijzig advies →
                                     @endif
                                 </button>
                             </div>
