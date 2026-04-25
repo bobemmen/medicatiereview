@@ -3,6 +3,8 @@
     $meds = $analysis['medicatie'] ?? [];
     $counts = $this->statusCounts;
     $filtered = $this->filteredMeds;
+    $sortField = $this->sortField;
+    $sortDirection = $this->sortDirection;
 
     $statusConfig = [
         'ok' => ['bg' => '#F0FDF4', 'text' => '#166534', 'dot' => '#16A34A', 'label' => 'Akkoord'],
