@@ -172,12 +172,33 @@ PROMPT;
         $toolInputJson = '';
         $stopReason = null;
         $sawToolUse = false;
+        $emptyReads = 0;
 
         while (!$body->eof()) {
-            $chunk = $body->read(4096);
+            try {
+                $chunk = $body->read(4096);
+            } catch (\Throwable $e) {
+                Log::error('Claude stream read() mislukt', [
+                    'error' => $e->getMessage(),
+                    'stop_reason' => $stopReason,
+                    'tool_input_chars' => strlen($toolInputJson),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw new RuntimeException('Stream-leesfout bij Anthropic API: ' . $e->getMessage(), 0, $e);
+            }
+
             if ($chunk === '') {
+                $emptyReads++;
+                if ($emptyReads > 200) {
+                    Log::warning('Claude stream: te veel lege reads — verbinding waarschijnlijk verbroken', [
+                        'stop_reason' => $stopReason,
+                        'tool_input_chars' => strlen($toolInputJson),
+                    ]);
+                    throw new RuntimeException('De verbinding met Anthropic API werd onverwacht verbroken (geen data meer).');
+                }
                 continue;
             }
+            $emptyReads = 0;
             $buffer .= $chunk;
 
             while (($pos = strpos($buffer, "\n\n")) !== false) {

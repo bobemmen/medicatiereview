@@ -43,6 +43,12 @@ class AnalysisStreamController extends Controller
             ini_set('default_socket_timeout', '300');
             ignore_user_abort(false);
 
+            // PHP-warnings/notices mogen de SSE-stroom niet corrumperen.
+            set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline): bool {
+                Log::warning('PHP-fout in stream-callback', compact('errno', 'errstr', 'errfile', 'errline'));
+                return true; // voorkomt dat PHP het zelf uitprint
+            });
+
             $this->sseEmit('start', ['ts' => microtime(true)]);
 
             try {
@@ -55,12 +61,20 @@ class AnalysisStreamController extends Controller
                     }
 
                     if (connection_aborted()) {
+                        Log::info('Analyse-stream: client heeft verbinding verbroken');
                         break;
                     }
                 }
             } catch (\Throwable $e) {
-                Log::warning('Analyse-stream faalde', ['error' => $e->getMessage()]);
+                Log::error('Analyse-stream faalde', [
+                    'error'   => $e->getMessage(),
+                    'class'   => get_class($e),
+                    'file'    => $e->getFile() . ':' . $e->getLine(),
+                    'trace'   => $e->getTraceAsString(),
+                ]);
                 $this->sseEmit('error', ['message' => $e->getMessage()]);
+            } finally {
+                restore_error_handler();
             }
         }, 200, $this->sseHeaders());
     }
