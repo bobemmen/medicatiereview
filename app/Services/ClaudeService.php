@@ -361,7 +361,14 @@ Uitgangspunten:
 - `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
 - `samenvatting`: 2-4 zinnen met de kernbevindingen.
 - `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen (STOPP/START-NL-criteriumcode zoals "K1" of "A3", NHG-standaardnummer, G-Standaard-interactie, SmPC, KNMP Kennisbank-hoofdstuk). Verzin geen bronnen — bij twijfel: laat de array leeg.
-- `url` per bron: alleen opnemen bij een canonieke deep-link die je exact kent (bv. NHG-Standaard op richtlijnen.nhg.org, Farmacotherapeutisch Kompas preparaat-pagina, Geneesmiddeleninformatiebank SmPC). Verzin geen URLs — bij twijfel: weglaten. Toplevel-homepages niet opnemen (die vullen we zelf in als fallback).
+- `url` per bron: doe ALTIJD je uiterste best om een specifieke deep-link URL op te nemen. Gebruik de volgende patronen:
+  - NHG-standaard → `https://richtlijnen.nhg.org/standaarden/<slug>` (bv. `diabetes-mellitus-type-2`, `hartfalen`, `atriumfibrilleren`, `chronische-nierschade`, `depressie`)
+  - Farmacotherapeutisch Kompas → `https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/<eerste-letter>/<stofnaam>` (bv. `/m/metformine`, `/a/atorvastatine`, `/b/bisoprolol`)
+  - STOPP-NL / START-NL → `https://richtlijnen.nhg.org/standaarden/stopp-start-nl` of de meest relevante NHG-pagina over polyfarmacie bij ouderen
+  - KNMP Kennisbank → gebruik Farmacotherapeutisch Kompas als publiek toegankelijk alternatief (`https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/...`)
+  - G-Standaard interactie → gebruik de FK-interactiepagina van het betreffende geneesmiddel op `farmacotherapeutischkompas.nl`
+  - SmPC → `https://www.geneesmiddeleninformatiebank.nl` product-pagina voor het betreffende geneesmiddel
+  - Als geen exacte pagina bekend is: geef de meest specifieke beschikbare pagina op het brondomein. Verzin nooit een URL die je niet kent. Toplevel-homepages niet opnemen (die vullen we zelf in als fallback).
 - Gebruik compacte zinnen. Geen herhaling. Geen disclaimers in tekst.
 
 ## Apotheeksysteem-exportformaten

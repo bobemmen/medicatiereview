@@ -3,11 +3,11 @@
 @if (!empty($bronnen))
     @php
         $fallbackUrls = [
-            'STOPP-NL'                    => 'https://www.nhg.org',
-            'START-NL'                    => 'https://www.nhg.org',
+            'STOPP-NL'                    => 'https://richtlijnen.nhg.org/standaarden/stopp-start-nl',
+            'START-NL'                    => 'https://richtlijnen.nhg.org/standaarden/stopp-start-nl',
             'NHG-standaard'               => 'https://richtlijnen.nhg.org/standaarden',
-            'KNMP Kennisbank'             => 'https://kennisbank.knmp.nl',
-            'G-Standaard'                 => 'https://www.z-index.nl',
+            'KNMP Kennisbank'             => 'https://www.farmacotherapeutischkompas.nl',
+            'G-Standaard'                 => 'https://www.farmacotherapeutischkompas.nl',
             'SmPC'                        => 'https://www.geneesmiddeleninformatiebank.nl',
             'Farmacotherapeutisch Kompas' => 'https://www.farmacotherapeutischkompas.nl',
         ];
@@ -15,9 +15,9 @@
             'STOPP-NL'                    => ['www.nhg.org', 'nhg.org', 'richtlijnen.nhg.org'],
             'START-NL'                    => ['www.nhg.org', 'nhg.org', 'richtlijnen.nhg.org'],
             'NHG-standaard'               => ['www.nhg.org', 'nhg.org', 'richtlijnen.nhg.org'],
-            'KNMP Kennisbank'             => ['kennisbank.knmp.nl', 'www.knmp.nl', 'knmp.nl'],
-            'G-Standaard'                 => ['www.z-index.nl', 'z-index.nl'],
-            'SmPC'                        => ['www.geneesmiddeleninformatiebank.nl', 'geneesmiddeleninformatiebank.nl', 'www.cbg-meb.nl', 'www.ema.europa.eu'],
+            'KNMP Kennisbank'             => ['kennisbank.knmp.nl', 'www.knmp.nl', 'knmp.nl', 'www.farmacotherapeutischkompas.nl', 'farmacotherapeutischkompas.nl'],
+            'G-Standaard'                 => ['www.z-index.nl', 'z-index.nl', 'www.farmacotherapeutischkompas.nl', 'farmacotherapeutischkompas.nl'],
+            'SmPC'                        => ['www.geneesmiddeleninformatiebank.nl', 'geneesmiddeleninformatiebank.nl', 'www.cbg-meb.nl', 'cbg-meb.nl', 'www.ema.europa.eu', 'ema.europa.eu'],
             'Farmacotherapeutisch Kompas' => ['www.farmacotherapeutischkompas.nl', 'farmacotherapeutischkompas.nl'],
         ];
     @endphp
@@ -31,10 +31,10 @@
                 $deepLink = null;
                 if ($rawUrl !== '') {
                     $scheme = parse_url($rawUrl, PHP_URL_SCHEME);
-                    $host   = parse_url($rawUrl, PHP_URL_HOST);
+                    $host   = strtolower((string) parse_url($rawUrl, PHP_URL_HOST));
                     $allowed = $allowedHosts[$type] ?? null;
-                    if ($scheme === 'https' && $host !== null) {
-                        if ($allowed === null || in_array(strtolower($host), $allowed, true)) {
+                    if ($scheme === 'https' && $host !== '') {
+                        if ($allowed === null || in_array($host, $allowed, true)) {
                             $deepLink = $rawUrl;
                         }
                     }
