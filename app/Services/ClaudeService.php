@@ -143,7 +143,7 @@ PROMPT;
             'accept' => 'text/event-stream',
         ])
         ->timeout(180)
-        ->withOptions(['stream' => true])
+        ->withOptions(['stream' => true, 'read_timeout' => 300])
         ->post($this->apiUrl, [
             'model' => $this->model,
             // Met streaming raken we de proxy-timeout niet meer — heartbeats houden

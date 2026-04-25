@@ -2,6 +2,18 @@
     $isReviewOrRapport = in_array($step, ['review', 'rapport'], true);
 @endphp
 
+{{-- Favicon wisselt mee met de analysestatus --}}
+<div x-data x-effect="
+    const link = document.getElementById('app-favicon');
+    if (!link) return;
+    const s = $wire.step;
+    link.href = (s === 'analyzing' || s === 'summarizing')
+        ? '/favicon-analyzing.svg'
+        : (s === 'review' || s === 'rapport')
+            ? '/favicon-review.svg'
+            : '/favicon-default.svg';
+" class="hidden"></div>
+
 <div class="flex flex-col min-h-screen bg-[#F7F9FC]">
 
     {{-- Topbar --}}

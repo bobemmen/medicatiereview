@@ -39,6 +39,8 @@ class AnalysisStreamController extends Controller
             while (ob_get_level() > 0) {
                 ob_end_flush();
             }
+            // default_socket_timeout staat standaard op 60s — te kort voor grote dossiers.
+            ini_set('default_socket_timeout', '300');
             ignore_user_abort(false);
 
             $this->sseEmit('start', ['ts' => microtime(true)]);
