@@ -178,7 +178,8 @@
                         </div>
 
                         {{-- Vragenlijst --}}
-                        <ol class="overflow-y-auto px-5 py-4 space-y-3.5">
+                        <ol class="overflow-y-auto px-5 py-4 space-y-3.5"
+                            @extra-vragen-geladen.window="$nextTick(() => $el.scrollBy({ top: 160, behavior: 'smooth' }))">
 
                             {{-- Eerste 10 (altijd zichtbaar) --}}
                             @foreach ($anamneseVragen as $i => $vraag)

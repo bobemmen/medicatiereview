@@ -333,6 +333,10 @@ TXT;
                 $context,
                 $this->analysis['anamnese_vragen'] ?? []
             );
+
+            if (!empty($this->extraAnamneseVragen)) {
+                $this->dispatch('extra-vragen-geladen');
+            }
         } catch (\Throwable $e) {
             Log::warning('Extra anamnesevragen genereren mislukt: ' . $e->getMessage());
         } finally {
