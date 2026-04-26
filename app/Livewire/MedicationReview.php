@@ -69,6 +69,13 @@ class MedicationReview extends Component
 
         $this->analysis = MockAnalysis::data();
         $this->initialiseReviewState();
+
+        // Demonstreer beide noot-states: notes[0] (Diltiazem) is door de
+        // apotheker gewijzigd t.o.v. de AI-versie -> potlood-icoon. Pantoprazol
+        // (index 5) is afgevinkt zodat de niet-greyed "done"-stijl zichtbaar is.
+        $this->notes[0] = 'Met cardioloog overlegd op 24-04: vandaag staken, amlodipine 5 mg starten. Patiënte volgende week bellen.';
+        $this->checked[5] = true;
+
         $this->step = $demo;
     }
 

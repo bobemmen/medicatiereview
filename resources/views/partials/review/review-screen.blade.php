@@ -166,22 +166,31 @@
                     $cfg = $statusConfig[$status] ?? $statusConfig['ok'];
                     $activeDrpCount = count(array_filter($drps[$id] ?? []));
                     $currentNote = $notes[$id] ?? '';
-                    $displayNote = $currentNote !== '' ? $currentNote : ($med['notitie'] ?? '');
+                    $aiNote = $med['notitie'] ?? '';
+                    $displayNote = $currentNote !== '' ? $currentNote : $aiNote;
+                    // Door mens gewijzigd zodra de actuele notitie afwijkt van wat de AI leverde.
+                    $isEdited = $displayNote !== '' && $currentNote !== '' && $currentNote !== $aiNote;
                     $expandBg = $status === 'drp' ? '#FFF8F8' : ($status === 'aandacht' ? '#FFFDF5' : '#F5F9FF');
                 @endphp
 
                 <div wire:key="med-{{ $id }}"
-                    class="border-b border-[#E2E8F0] transition-opacity duration-150 {{ $isDone ? 'bg-[#F1F5F9] opacity-60' : 'bg-white' }}">
+                    class="border-b border-[#E2E8F0] bg-white relative {{ $isDone ? 'border-l-[3px] border-l-[#16A34A]' : '' }}">
 
                     {{-- Row --}}
                     <div class="flex items-center px-4 cursor-pointer hover:bg-[#F7F9FC]"
                         wire:click="toggleExpanded({{ $id }})">
 
                         <div class="w-[4%] py-2.5 flex items-center justify-center">
-                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
-                                class="transition-transform duration-200 {{ $isExpanded ? 'rotate-90 text-[#1A4F82]' : 'text-[#CBD5E1]' }}">
-                                <path d="M4 2.5l4 3.5-4 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            @if ($isDone)
+                                <svg width="13" height="13" viewBox="0 0 12 12" fill="none" class="text-[#16A34A]">
+                                    <path d="M1.5 6l3 3 6-6.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            @else
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
+                                    class="transition-transform duration-200 {{ $isExpanded ? 'rotate-90 text-[#1A4F82]' : 'text-[#CBD5E1]' }}">
+                                    <path d="M4 2.5l4 3.5-4 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            @endif
                         </div>
 
                         <div class="w-[20%] py-2.5 px-2">
@@ -211,9 +220,26 @@
 
                         <div class="w-[33%] py-2.5 px-2 text-xs leading-snug
                             {{ $displayNote !== '' ? 'text-[#334155]' : 'text-[#CBD5E1] italic' }}">
-                            {{ $displayNote !== '' ? $displayNote : '—' }}
                             @if ($displayNote !== '')
+                                @if ($isEdited)
+                                    <span title="Door apotheker gewijzigd"
+                                        class="inline-flex items-center justify-center w-[15px] h-[15px] rounded-full bg-[#EBF3FC] text-[#1A4F82] mr-1 align-text-bottom shrink-0">
+                                        <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                                            <path d="M2 10l1-3 5-5 2 2-5 5-3 1z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </span>
+                                @else
+                                    <span title="Door AI opgesteld"
+                                        class="inline-flex items-center justify-center w-[15px] h-[15px] rounded-full bg-[#F3E8FF] text-[#7C3AED] mr-1 align-text-bottom shrink-0">
+                                        <svg width="9" height="9" viewBox="0 0 12 12" fill="none">
+                                            <path d="M6 1l1.2 3.3L10.5 5.5 7.2 6.7 6 10 4.8 6.7 1.5 5.5 4.8 4.3 6 1z" fill="currentColor"/>
+                                        </svg>
+                                    </span>
+                                @endif
+                                {{ $displayNote }}
                                 @include('partials.review.bronnen-refs', ['bronnen' => $med['bronnen'] ?? []])
+                            @else
+                                —
                             @endif
                         </div>
                     </div>
