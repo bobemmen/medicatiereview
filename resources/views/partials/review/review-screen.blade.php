@@ -5,9 +5,10 @@
     $filtered = $this->filteredMeds;
     $sortField = $this->sortField;
     $sortDirection = $this->sortDirection;
-    $anamneseVragen = array_slice($analysis['anamnese_vragen'] ?? [], 0, 20);
-    $anamneseFirst  = array_slice($anamneseVragen, 0, 10);
-    $anamneseExtra  = array_slice($anamneseVragen, 10);
+    $anamneseVragen = array_slice($analysis['anamnese_vragen'] ?? [], 0, 10);
+    // Hulpfunctie om {thema,vraag}-object of losse string te normaliseren
+    $vraagText = fn ($v) => is_string($v) ? $v : ($v['vraag'] ?? '');
+    $vraagThema = fn ($v) => is_string($v) ? null : ($v['thema'] ?? null);
 
     $statusConfig = [
         'ok' => ['bg' => '#F0FDF4', 'text' => '#166534', 'dot' => '#16A34A', 'label' => 'Akkoord'],
@@ -102,14 +103,35 @@
 
         {{-- Anamnesevragen-knop + modal --}}
         @if (!empty($anamneseVragen))
-            <div x-data="{ open: false, showAll: false }" class="border-t border-[#E2E8F0] mt-2.5 pt-3">
+            @php
+                // Platte vraag-tekst-array voor klembord (server-side, Alpine leest dit als JS literal)
+                $anamneseTexts = array_map($vraagText, $anamneseVragen);
+            @endphp
+            <div x-data="{
+                    open: false,
+                    copied: false,
+                    copyAll() {
+                        const initial = @js($anamneseTexts);
+                        const extra   = ($wire.extraAnamneseVragen || []).map(v => v.vraag ?? v);
+                        const all     = [...initial, ...extra];
+                        const text    = all.map((q, i) => (i + 1) + '. ' + q).join('\n');
+                        navigator.clipboard.writeText(text).then(() => {
+                            this.copied = true;
+                            setTimeout(() => this.copied = false, 2000);
+                        });
+                    }
+                }"
+                class="border-t border-[#E2E8F0] mt-2.5 pt-3">
+
                 <button type="button" @click="open = true"
                     class="w-full flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] hover:bg-[#EDE9FE] transition text-xs font-medium">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="shrink-0">
                         <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="currentColor"/>
                     </svg>
                     Top 10 anamnesevragen
-                    <span class="ml-auto text-[10px] bg-[#7C3AED] text-white rounded-full px-1.5 font-semibold">{{ count($anamneseVragen) }}</span>
+                    <span class="ml-auto text-[10px] bg-[#7C3AED] text-white rounded-full px-1.5 font-semibold">
+                        {{ count($anamneseVragen) }}{{ !empty($extraAnamneseVragen) ? '+' . count($extraAnamneseVragen) : '' }}
+                    </span>
                 </button>
 
                 {{-- Modal overlay --}}
@@ -132,7 +154,7 @@
                         x-transition:leave="transition ease-in duration-100"
                         x-transition:leave-start="opacity-100 scale-100"
                         x-transition:leave-end="opacity-0 scale-95"
-                        class="bg-white rounded-xl shadow-2xl w-[480px] max-w-[92vw] max-h-[80vh] flex flex-col overflow-hidden">
+                        class="bg-white rounded-xl shadow-2xl w-[500px] max-w-[92vw] max-h-[82vh] flex flex-col overflow-hidden">
 
                         {{-- Header --}}
                         <div class="flex items-start justify-between px-5 pt-5 pb-3 border-b border-[#E2E8F0]">
@@ -155,47 +177,97 @@
                             </button>
                         </div>
 
-                        {{-- Lijst --}}
-                        <ol class="overflow-y-auto px-5 py-4 space-y-3">
-                            @foreach ($anamneseFirst as $i => $vraag)
+                        {{-- Vragenlijst --}}
+                        <ol class="overflow-y-auto px-5 py-4 space-y-3.5">
+
+                            {{-- Eerste 10 (altijd zichtbaar) --}}
+                            @foreach ($anamneseVragen as $i => $vraag)
                                 <li class="flex gap-3 items-start">
                                     <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#F3E8FF] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
                                         {{ $i + 1 }}
                                     </span>
-                                    <span class="text-[13px] text-[#334155] leading-snug">{{ $vraag }}</span>
+                                    <div class="flex-1 min-w-0">
+                                        @if ($vraagThema($vraag))
+                                            <div class="text-[9px] font-semibold uppercase tracking-wider text-[#7C3AED] mb-0.5">{{ $vraagThema($vraag) }}</div>
+                                        @endif
+                                        <p class="text-[13px] text-[#334155] leading-snug">{{ $vraagText($vraag) }}</p>
+                                    </div>
                                 </li>
                             @endforeach
 
-                            @if (!empty($anamneseExtra))
-                                @foreach ($anamneseExtra as $j => $vraag)
-                                    <li x-show="showAll"
-                                        x-transition:enter="transition ease-out duration-150"
-                                        x-transition:enter-start="opacity-0 -translate-y-1"
-                                        x-transition:enter-end="opacity-100 translate-y-0"
-                                        x-cloak
-                                        class="flex gap-3 items-start">
-                                        <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
-                                            {{ count($anamneseFirst) + $j + 1 }}
-                                        </span>
-                                        <span class="text-[13px] text-[#334155] leading-snug">{{ $vraag }}</span>
-                                    </li>
-                                @endforeach
+                            {{-- Scheidingslijn als extra vragen geladen zijn --}}
+                            @if (!empty($extraAnamneseVragen))
+                                <li class="flex items-center gap-2 py-1" aria-hidden="true">
+                                    <span class="flex-1 border-t border-dashed border-[#E2E8F0]"></span>
+                                    <span class="text-[9px] text-[#94A3B8] font-medium uppercase tracking-wider">uitgebreid</span>
+                                    <span class="flex-1 border-t border-dashed border-[#E2E8F0]"></span>
+                                </li>
                             @endif
+
+                            {{-- Extra 10 (na generatie) --}}
+                            @foreach ($extraAnamneseVragen as $j => $extraVraag)
+                                <li class="flex gap-3 items-start">
+                                    <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                        {{ count($anamneseVragen) + $j + 1 }}
+                                    </span>
+                                    <div class="flex-1 min-w-0">
+                                        @if (!empty($extraVraag['thema']))
+                                            <div class="text-[9px] font-semibold uppercase tracking-wider text-[#7C3AED] mb-0.5">{{ $extraVraag['thema'] }}</div>
+                                        @endif
+                                        <p class="text-[13px] text-[#334155] leading-snug">{{ $extraVraag['vraag'] ?? $extraVraag }}</p>
+                                    </div>
+                                </li>
+                            @endforeach
+
+                            {{-- Laad-animatie tijdens genereren --}}
+                            @if ($loadingExtraVragen)
+                                <li class="flex items-center justify-center gap-2 py-4 text-[#7C3AED]">
+                                    <svg class="animate-spin" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="10"/>
+                                    </svg>
+                                    <span class="text-xs text-[#64748B]">Extra vragen worden gegenereerd…</span>
+                                </li>
+                            @endif
+
                         </ol>
 
                         {{-- Footer --}}
                         <div class="px-5 py-3 border-t border-[#E2E8F0] flex items-center gap-2">
-                            @if (!empty($anamneseExtra))
-                                <button type="button" x-show="!showAll" @click="showAll = true"
-                                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] text-xs font-medium hover:bg-[#EDE9FE] transition">
+
+                            {{-- Breid uit knop (verborgen zodra extra vragen geladen of aan het laden zijn) --}}
+                            @if (empty($extraAnamneseVragen) && !$loadingExtraVragen)
+                                <button type="button"
+                                    wire:click="loadExtraAnamneseVragen"
+                                    wire:loading.attr="disabled"
+                                    wire:target="loadExtraAnamneseVragen"
+                                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] text-xs font-medium hover:bg-[#EDE9FE] transition disabled:opacity-50">
                                     <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
                                         <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="currentColor"/>
                                     </svg>
                                     Breid uit naar 20 vragen
                                 </button>
                             @endif
+
                             <div class="flex-1"></div>
-                            <button type="button" @click="open = false; showAll = false"
+
+                            {{-- Kopieer-knop --}}
+                            <button type="button" @click="copyAll()"
+                                class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] border border-[#E2E8F0] text-[#64748B] text-xs font-medium hover:bg-[#F1F5F9] transition">
+                                <template x-if="!copied">
+                                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                                        <rect x="1" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/>
+                                        <path d="M4 4V2.5A1.5 1.5 0 015.5 1H11.5A1.5 1.5 0 0113 2.5V8.5A1.5 1.5 0 0111.5 10H10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                                    </svg>
+                                </template>
+                                <template x-if="copied">
+                                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" class="text-[#16A34A]">
+                                        <path d="M2 7l3.5 3.5L12 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </template>
+                                <span x-text="copied ? 'Gekopieerd!' : 'Kopieer'" :class="copied ? 'text-[#16A34A]' : ''"></span>
+                            </button>
+
+                            <button type="button" @click="open = false"
                                 class="px-4 py-1.5 rounded-[6px] bg-[#F1F5F9] text-[#64748B] text-xs font-medium hover:bg-[#E2E8F0] transition">
                                 Sluiten
                             </button>

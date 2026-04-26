@@ -6,6 +6,7 @@ use App\Demo\MockAnalysis;
 use App\Services\ClaudeService;
 use App\Services\DossierExtractor;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
@@ -46,6 +47,10 @@ class MedicationReview extends Component
     public ?int $expandedMed = null;
     public ?string $sortField = null;       // 'naam' | 'status' | null
     public string $sortDirection = 'asc';   // 'asc' | 'desc'
+
+    /** Anamnesevragen — extra 10 worden on-demand gegenereerd */
+    public array $extraAnamneseVragen = [];
+    public bool $loadingExtraVragen = false;
 
     /** Demo / rate-limit state */
     public bool $showUnlockModal = false;
@@ -299,6 +304,42 @@ TXT;
         $this->step = 'error';
     }
 
+    public function loadExtraAnamneseVragen(): void
+    {
+        if (!empty($this->extraAnamneseVragen) || $this->loadingExtraVragen) {
+            return;
+        }
+
+        $this->loadingExtraVragen = true;
+
+        try {
+            $claude  = app(ClaudeService::class);
+            $patient = $this->analysis['patient'] ?? [];
+            $meds    = $this->analysis['medicatie'] ?? [];
+
+            $context = implode("\n", array_filter([
+                'Patiënt: ' . ($patient['initialen_of_geanonimiseerde_naam'] ?? '')
+                    . ', ' . ($patient['leeftijd'] ?? '') . ' jaar, ' . ($patient['geslacht'] ?? ''),
+                'Nierfunctie: ' . ($patient['nierfunctie'] ?? ''),
+                'Voorgeschiedenis: ' . implode(', ', $patient['voorgeschiedenis'] ?? []),
+                'Medicatie met DRP/aandacht: ' . implode(', ', array_map(
+                    fn ($m) => ($m['naam'] ?? '') . ' (' . ($m['status'] ?? '') . ')',
+                    array_filter($meds, fn ($m) => ($m['status'] ?? 'ok') !== 'ok')
+                )),
+                'Samenvatting: ' . ($this->analysis['samenvatting'] ?? ''),
+            ]));
+
+            $this->extraAnamneseVragen = $claude->generateExtraAnamneseVragen(
+                $context,
+                $this->analysis['anamnese_vragen'] ?? []
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Extra anamnesevragen genereren mislukt: ' . $e->getMessage());
+        } finally {
+            $this->loadingExtraVragen = false;
+        }
+    }
+
     private function initialiseReviewState(): void
     {
         $this->checked = [];
@@ -309,6 +350,8 @@ TXT;
         $this->expandedMed = null;
         $this->sortField = null;
         $this->sortDirection = 'asc';
+        $this->extraAnamneseVragen = [];
+        $this->loadingExtraVragen = false;
 
         foreach ($this->analysis['medicatie'] ?? [] as $index => $med) {
             $this->checked[$index] = false;

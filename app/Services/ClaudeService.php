@@ -354,6 +354,82 @@ PROMPT;
         throw new RuntimeException("Geen gestructureerde analyse ontvangen van Claude (stop_reason: {$reason}). Probeer het opnieuw of gebruik een korter dossier.");
     }
 
+    /**
+     * Genereert 10 aanvullende anamnesevragen op basis van de reeds opgestelde vragen
+     * en een beknopte samenvatting van het medicatieprofiel. Gebruikt Haiku voor snelheid.
+     *
+     * @param string $analysisContext Compacte tekst met patiëntprofiel + DRP-samenvatting
+     * @param array  $existingVragen  De reeds gegenereerde vragen (strings of {thema,vraag}-objecten)
+     * @return array<array{thema: string, vraag: string}>
+     */
+    public function generateExtraAnamneseVragen(string $analysisContext, array $existingVragen): array
+    {
+        if ($this->apiKey === '') {
+            throw new RuntimeException('ANTHROPIC_API_KEY ontbreekt.');
+        }
+
+        $existingText = implode("\n", array_map(
+            fn ($v, $i) => ($i + 1) . '. ' . (is_string($v) ? $v : ($v['vraag'] ?? '')),
+            $existingVragen,
+            array_keys($existingVragen)
+        ));
+
+        $response = Http::withHeaders([
+            'x-api-key'         => $this->apiKey,
+            'anthropic-version' => '2023-06-01',
+            'content-type'      => 'application/json',
+        ])->timeout(60)->post($this->apiUrl, [
+            'model'       => self::SUMMARY_MODEL,
+            'max_tokens'  => 1200,
+            'tools' => [[
+                'name'        => 'submit_extra_vragen',
+                'description' => 'Geeft precies 10 aanvullende anamnesevragen terug.',
+                'input_schema' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'vragen' => [
+                            'type'  => 'array',
+                            'items' => [
+                                'type'       => 'object',
+                                'properties' => [
+                                    'thema' => ['type' => 'string', 'description' => 'Kort thema-label, bv. "Bijwerking", "Pijn", "Leefstijl", "Cognitie"'],
+                                    'vraag' => ['type' => 'string', 'description' => 'Volledige open anamnesevraag voor de apotheker'],
+                                ],
+                                'required' => ['thema', 'vraag'],
+                            ],
+                        ],
+                    ],
+                    'required' => ['vragen'],
+                ],
+            ]],
+            'tool_choice' => ['type' => 'tool', 'name' => 'submit_extra_vragen'],
+            'messages' => [[
+                'role'    => 'user',
+                'content' => "Je bent een apothekers-assistent. Op basis van het onderstaande patiëntprofiel zijn al de volgende anamnesevragen opgesteld:\n\n{$existingText}\n\nGenereer nu precies 10 AANVULLENDE, niet-overlappende anamnesevragen. Varieer de thema's: bijwerkingen, pijn, alcohol, mobiliteit, stemming, cognitie, slaap (anders dan bestaande), slikproblemen, leefstijl, recente wijzigingen. Roep het tool `submit_extra_vragen` aan.\n\n=== PATIËNTPROFIEL ===\n{$analysisContext}\n=== EINDE ===",
+            ]],
+        ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException('Claude API fout bij extra anamnesevragen: ' . $response->status() . ' — ' . $response->body());
+        }
+
+        $payload = $response->json();
+
+        Log::info('Claude extra-anamnese usage', [
+            'model'  => self::SUMMARY_MODEL,
+            'input'  => $payload['usage']['input_tokens'] ?? null,
+            'output' => $payload['usage']['output_tokens'] ?? null,
+        ]);
+
+        foreach ($payload['content'] ?? [] as $block) {
+            if (($block['type'] ?? '') === 'tool_use' && ($block['name'] ?? '') === 'submit_extra_vragen') {
+                return array_slice($block['input']['vragen'] ?? [], 0, 10);
+            }
+        }
+
+        return [];
+    }
+
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
@@ -377,7 +453,7 @@ Uitgangspunten:
 - `labwaarden`: MAXIMAAL 6 waarden, alleen de meest recente én klinisch relevante (eGFR, HbA1c, kalium, natrium, creatinine, INR). Géén historie.
 - `klinische_duiding` per labwaarde: max 1 korte zin.
 - `notitie` per medicatie: max 2-3 korte zinnen. Bij `status=ok`: lege string.
-- `anamnese_vragen`: MAXIMAAL 8 vragen, alleen de klinisch relevante.
+- `anamnese_vragen`: MAXIMAAL 10 vragen, alleen de klinisch meest relevante, geordend van meest naar minst urgent.
 - `interacties`: alle interacties van matig of ernstiger niveau — geen lichte/triviale.
 - `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
 - `samenvatting`: 2-4 zinnen met de kernbevindingen.
