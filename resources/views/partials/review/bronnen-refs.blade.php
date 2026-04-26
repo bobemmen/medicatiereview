@@ -12,14 +12,13 @@
         // anticholinerge belasting, mictie- en defecatieproblemen, bloedingsrisico,
         // beperkte levensverwachting < 1 jaar.
         $stoppV2Anchors = [
+            'A' => 'a-stoppen-algemeen',
+            'B' => 'b-vallen',
+            'C' => 'c-verminderde-cognitieve-functies',
+            'D' => 'd-mictie-en-defecatieproblemen',
             'E' => 'e-cardiovasculaire-belasting',
-            // 'A' => 'a-...',
-            // 'B' => 'b-...',
-            // 'C' => 'c-...',
-            // 'D' => 'd-...',
-            // 'F' => 'f-...',
-            // 'G' => 'g-...',
-            // 'H' => 'h-...',
+            'F' => 'f-bloedingsrisico',
+            'G' => 'g-gering-geschatte-resterende-levensverwachting-1-jaar',
         ];
 
         $fallbackUrls = [
