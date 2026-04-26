@@ -5,6 +5,7 @@
     $filtered = $this->filteredMeds;
     $sortField = $this->sortField;
     $sortDirection = $this->sortDirection;
+    $anamneseVragen = array_slice($analysis['anamnese_vragen'] ?? [], 0, 10);
 
     $statusConfig = [
         'ok' => ['bg' => '#F0FDF4', 'text' => '#166534', 'dot' => '#16A34A', 'label' => 'Akkoord'],
@@ -96,6 +97,86 @@
         </div>
 
         <div class="flex-1"></div>
+
+        {{-- Anamnesevragen-knop + modal --}}
+        @if (!empty($anamneseVragen))
+            <div x-data="{ open: false }" class="border-t border-[#E2E8F0] mt-2.5 pt-3">
+                <button type="button" @click="open = true"
+                    class="w-full flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] hover:bg-[#EDE9FE] transition text-xs font-medium">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="shrink-0">
+                        <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="currentColor"/>
+                    </svg>
+                    Top 10 anamnesevragen
+                    <span class="ml-auto text-[10px] bg-[#7C3AED] text-white rounded-full px-1.5 font-semibold">{{ count($anamneseVragen) }}</span>
+                </button>
+
+                {{-- Modal overlay --}}
+                <div x-show="open"
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    x-cloak
+                    @click.self="open = false"
+                    @keydown.escape.window="open = false"
+                    class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+
+                    <div @click.stop
+                        x-transition:enter="transition ease-out duration-150"
+                        x-transition:enter-start="opacity-0 scale-95"
+                        x-transition:enter-end="opacity-100 scale-100"
+                        x-transition:leave="transition ease-in duration-100"
+                        x-transition:leave-start="opacity-100 scale-100"
+                        x-transition:leave-end="opacity-0 scale-95"
+                        class="bg-white rounded-xl shadow-2xl w-[480px] max-w-[92vw] max-h-[80vh] flex flex-col overflow-hidden">
+
+                        {{-- Header --}}
+                        <div class="flex items-start justify-between px-5 pt-5 pb-3 border-b border-[#E2E8F0]">
+                            <div>
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <span class="inline-flex items-center justify-center w-[20px] h-[20px] rounded-full bg-[#F3E8FF]">
+                                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                                            <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="#7C3AED"/>
+                                        </svg>
+                                    </span>
+                                    <h2 class="text-sm font-semibold text-[#0F172A]">Top 10 anamnesevragen</h2>
+                                </div>
+                                <p class="text-[11px] text-[#64748B]">AI-selectie op basis van het medicatieprofiel · Ter ondersteuning, niet uitputtend</p>
+                            </div>
+                            <button type="button" @click="open = false"
+                                class="text-[#94A3B8] hover:text-[#0F172A] transition ml-3 mt-0.5 shrink-0">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        {{-- Lijst --}}
+                        <ol class="overflow-y-auto px-5 py-4 space-y-3">
+                            @foreach ($anamneseVragen as $i => $vraag)
+                                <li class="flex gap-3 items-start">
+                                    <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#F3E8FF] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                        {{ $i + 1 }}
+                                    </span>
+                                    <span class="text-[13px] text-[#334155] leading-snug">{{ $vraag }}</span>
+                                </li>
+                            @endforeach
+                        </ol>
+
+                        {{-- Footer --}}
+                        <div class="px-5 py-3 border-t border-[#E2E8F0] flex justify-end">
+                            <button type="button" @click="open = false"
+                                class="px-4 py-1.5 rounded-[6px] bg-[#F1F5F9] text-[#64748B] text-xs font-medium hover:bg-[#E2E8F0] transition">
+                                Sluiten
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
     </aside>
 
     {{-- Main --}}

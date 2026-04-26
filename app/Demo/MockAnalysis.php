@@ -189,6 +189,19 @@ class MockAnalysis
             ],
 
             'samenvatting' => 'Kwetsbare 78-jarige met hartfalen, AF en CKD G3b. Drie DRP\'s: diltiazem ongeschikt bij HFrEF (E1), langdurig lormetazepam met valrisico, en mogelijk supratherapeutische apixaban-dosering. Daarnaast aandacht voor metformine-dosering bij verminderde nierfunctie en herevaluatie PPI/lisdiureticum.',
+
+            'anamnese_vragen' => [
+                'Bent u de afgelopen 6 maanden gevallen of bijna gevallen?',
+                'Hoe slaapt u zonder de slaaptablet? Hoe lang gebruikt u lormetazepam al en heeft u al eerder geprobeerd het af te bouwen?',
+                'Ervaart u duizeligheid bij het opstaan of na het innemen van uw bloeddruk- of plasmiddelen?',
+                'Heeft u last van kortademigheid, vocht in de benen of een onverwachte gewichtstoename van meer dan 2 kg in een week?',
+                'Hoe zijn uw bloedsuikerwaarden de laatste weken en heeft u hypoglykemische klachten (trillen, zweten, honger)?',
+                'Heeft u de laatste tijd last van ongewone bloedingen, langdurig nabloeden bij een wondje of onverwachte blauwe plekken?',
+                'Gebruikt u ook vrij verkrijgbare pijnstillers zoals ibuprofen of naproxen?',
+                'Hoe is uw eetlust en gewicht de laatste maanden en drinkt u voldoende?',
+                'Neemt u al uw medicijnen dagelijks in? Vergeet u wel eens een dosis, of slaat u een tablet over?',
+                'Heeft u last van maagklachten, zuurbranden of een vol gevoel na het eten?',
+            ],
         ];
     }
 }
