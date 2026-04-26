@@ -219,33 +219,29 @@
                                 </li>
                             @endforeach
 
-                            {{-- Laad-animatie: wire:loading zodat Livewire's JS-laag dit
-                                 client-side toont zodra de request in-flight is. @if werkt
-                                 niet omdat Livewire pas re-rendert na afloop van de actie. --}}
-                            <li wire:loading wire:target="loadExtraAnamneseVragen"
-                                class="flex items-center justify-center gap-2 py-4">
-                                <svg class="animate-spin text-[#7C3AED]" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="10"/>
-                                </svg>
-                                <span class="text-xs text-[#64748B]">Extra vragen worden gegenereerd…</span>
-                            </li>
-
                         </ol>
 
                         {{-- Footer --}}
                         <div class="px-5 py-3 border-t border-[#E2E8F0] flex items-center gap-2">
 
-                            {{-- Breid uit knop: wire:loading.remove verbergt hem client-side
-                                 tijdens de request; na afloop verdwijnt hij via @if. --}}
+                            {{-- Breid uit knop: spinner verschijnt IN de knop zodra de
+                                 request in-flight is; na afloop verdwijnt de knop via @if. --}}
                             @if (empty($extraAnamneseVragen))
                                 <button type="button"
                                     wire:click="loadExtraAnamneseVragen"
-                                    wire:loading.remove wire:target="loadExtraAnamneseVragen"
                                     class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] text-xs font-medium hover:bg-[#EDE9FE] transition">
-                                    <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                                    {{-- Normale toestand --}}
+                                    <svg wire:loading.remove wire:target="loadExtraAnamneseVragen"
+                                        width="11" height="11" viewBox="0 0 14 14" fill="none">
                                         <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="currentColor"/>
                                     </svg>
-                                    Breid uit naar 20 vragen
+                                    <span wire:loading.remove wire:target="loadExtraAnamneseVragen">Breid uit naar 20 vragen</span>
+                                    {{-- Laad-toestand --}}
+                                    <svg wire:loading wire:target="loadExtraAnamneseVragen"
+                                        class="animate-spin" width="11" height="11" viewBox="0 0 16 16" fill="none">
+                                        <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="28" stroke-dashoffset="10"/>
+                                    </svg>
+                                    <span wire:loading wire:target="loadExtraAnamneseVragen">Genereren…</span>
                                 </button>
                             @endif
 
