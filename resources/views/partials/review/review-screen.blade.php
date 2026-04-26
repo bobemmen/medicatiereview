@@ -5,7 +5,9 @@
     $filtered = $this->filteredMeds;
     $sortField = $this->sortField;
     $sortDirection = $this->sortDirection;
-    $anamneseVragen = array_slice($analysis['anamnese_vragen'] ?? [], 0, 10);
+    $anamneseVragen = array_slice($analysis['anamnese_vragen'] ?? [], 0, 20);
+    $anamneseFirst  = array_slice($anamneseVragen, 0, 10);
+    $anamneseExtra  = array_slice($anamneseVragen, 10);
 
     $statusConfig = [
         'ok' => ['bg' => '#F0FDF4', 'text' => '#166534', 'dot' => '#16A34A', 'label' => 'Akkoord'],
@@ -100,7 +102,7 @@
 
         {{-- Anamnesevragen-knop + modal --}}
         @if (!empty($anamneseVragen))
-            <div x-data="{ open: false }" class="border-t border-[#E2E8F0] mt-2.5 pt-3">
+            <div x-data="{ open: false, showAll: false }" class="border-t border-[#E2E8F0] mt-2.5 pt-3">
                 <button type="button" @click="open = true"
                     class="w-full flex items-center gap-2 px-3 py-2 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] hover:bg-[#EDE9FE] transition text-xs font-medium">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="shrink-0">
@@ -155,7 +157,7 @@
 
                         {{-- Lijst --}}
                         <ol class="overflow-y-auto px-5 py-4 space-y-3">
-                            @foreach ($anamneseVragen as $i => $vraag)
+                            @foreach ($anamneseFirst as $i => $vraag)
                                 <li class="flex gap-3 items-start">
                                     <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#F3E8FF] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
                                         {{ $i + 1 }}
@@ -163,11 +165,37 @@
                                     <span class="text-[13px] text-[#334155] leading-snug">{{ $vraag }}</span>
                                 </li>
                             @endforeach
+
+                            @if (!empty($anamneseExtra))
+                                @foreach ($anamneseExtra as $j => $vraag)
+                                    <li x-show="showAll"
+                                        x-transition:enter="transition ease-out duration-150"
+                                        x-transition:enter-start="opacity-0 -translate-y-1"
+                                        x-transition:enter-end="opacity-100 translate-y-0"
+                                        x-cloak
+                                        class="flex gap-3 items-start">
+                                        <span class="shrink-0 w-[22px] h-[22px] rounded-full bg-[#EDE9FE] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center mt-0.5">
+                                            {{ count($anamneseFirst) + $j + 1 }}
+                                        </span>
+                                        <span class="text-[13px] text-[#334155] leading-snug">{{ $vraag }}</span>
+                                    </li>
+                                @endforeach
+                            @endif
                         </ol>
 
                         {{-- Footer --}}
-                        <div class="px-5 py-3 border-t border-[#E2E8F0] flex justify-end">
-                            <button type="button" @click="open = false"
+                        <div class="px-5 py-3 border-t border-[#E2E8F0] flex items-center gap-2">
+                            @if (!empty($anamneseExtra))
+                                <button type="button" x-show="!showAll" @click="showAll = true"
+                                    class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[6px] bg-[#F3E8FF] text-[#7C3AED] text-xs font-medium hover:bg-[#EDE9FE] transition">
+                                    <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 1l1.4 3.8L12.5 6 8.4 7.2 7 11 5.6 7.2 1.5 6l4.1-1.2L7 1z" fill="currentColor"/>
+                                    </svg>
+                                    Breid uit naar 20 vragen
+                                </button>
+                            @endif
+                            <div class="flex-1"></div>
+                            <button type="button" @click="open = false; showAll = false"
                                 class="px-4 py-1.5 rounded-[6px] bg-[#F1F5F9] text-[#64748B] text-xs font-medium hover:bg-[#E2E8F0] transition">
                                 Sluiten
                             </button>

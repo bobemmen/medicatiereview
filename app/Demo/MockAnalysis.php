@@ -191,6 +191,7 @@ class MockAnalysis
             'samenvatting' => 'Kwetsbare 78-jarige met hartfalen, AF en CKD G3b. Drie DRP\'s: diltiazem ongeschikt bij HFrEF (E1), langdurig lormetazepam met valrisico, en mogelijk supratherapeutische apixaban-dosering. Daarnaast aandacht voor metformine-dosering bij verminderde nierfunctie en herevaluatie PPI/lisdiureticum.',
 
             'anamnese_vragen' => [
+                // Top 10
                 'Bent u de afgelopen 6 maanden gevallen of bijna gevallen?',
                 'Hoe slaapt u zonder de slaaptablet? Hoe lang gebruikt u lormetazepam al en heeft u al eerder geprobeerd het af te bouwen?',
                 'Ervaart u duizeligheid bij het opstaan of na het innemen van uw bloeddruk- of plasmiddelen?',
@@ -201,6 +202,17 @@ class MockAnalysis
                 'Hoe is uw eetlust en gewicht de laatste maanden en drinkt u voldoende?',
                 'Neemt u al uw medicijnen dagelijks in? Vergeet u wel eens een dosis, of slaat u een tablet over?',
                 'Heeft u last van maagklachten, zuurbranden of een vol gevoel na het eten?',
+                // Uitbreiding naar 20
+                'Heeft u pijn? Zo ja, hoe behandelt u dat en welke middelen gebruikt u daarvoor?',
+                'Drinkt u alcohol? Zo ja, hoeveel glazen per dag of per week gemiddeld?',
+                'Heeft u moeite met slikken van uw tabletten?',
+                'Hoe is uw mobiliteit: loopt u zelfstandig, of met een rollator of stok?',
+                'Heeft u recent een nieuw geneesmiddel, vitamine of supplement gestart — ook zonder recept?',
+                'Zijn er bijwerkingen die u toeschrijft aan één van uw medicijnen?',
+                'Heeft u uw urine de laatste tijd goed bijgehouden: plast u vaker, minder, of anders dan normaal?',
+                'Hoe is uw stemming de laatste weken — voelt u zich somber of angstig?',
+                'Heeft u moeite met concentreren, geheugen of het onthouden van afspraken?',
+                'Heeft u uw medicijnen de laatste tijd zelf aangepast of tijdelijk gestopt, zonder overleg met arts of apotheker?',
             ],
         ];
     }
