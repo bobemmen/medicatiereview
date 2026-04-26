@@ -381,11 +381,12 @@ Uitgangspunten:
 - `interacties`: alle interacties van matig of ernstiger niveau — geen lichte/triviale.
 - `mechanisme`, `klinisch_gevolg`, `actie`: elk 1-2 korte zinnen.
 - `samenvatting`: 2-4 zinnen met de kernbevindingen.
-- `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen (STOPP/START-NL-criteriumcode zoals "K1" of "A3", NHG-standaardnummer, G-Standaard-interactie, SmPC, KNMP Kennisbank-hoofdstuk). Verzin geen bronnen — bij twijfel: laat de array leeg.
-- `url` per bron: doe ALTIJD je uiterste best om een specifieke deep-link URL op te nemen. Gebruik de volgende patronen:
+- `bronnen` per medicatie: MAXIMAAL 3, alleen bij status=aandacht of drp. Gebruik alleen bronnen die je specifiek kunt benoemen. Verzin geen bronnen — bij twijfel: laat de array leeg.
+  - Voor STOPP-NL: gebruik **STOP-NL v2** (domein-georiënteerd, gepubliceerd door NHG). De `titel` MOET de criteriumcode bevatten in de vorm `<Letter><Nummer>`, bv. "STOPP-NL E1 — langwerkende NSAID's bij hartfalen". Voor STOPP-NL hoef je géén `url` op te nemen; het systeem bouwt zelf de deep-link naar het juiste hoofdstuk op basis van de letter.
+  - START-NL is afgeschaft in v2 — gebruik geen START-NL-bronnen meer. Verwijs in plaats daarvan naar de relevante NHG-standaard.
+- `url` per bron: doe ALTIJD je uiterste best om een specifieke deep-link URL op te nemen (uitgezonderd STOPP-NL, zie boven). Gebruik de volgende patronen:
   - NHG-standaard → `https://richtlijnen.nhg.org/standaarden/<slug>` (bv. `diabetes-mellitus-type-2`, `hartfalen`, `atriumfibrilleren`, `chronische-nierschade`, `depressie`)
   - Farmacotherapeutisch Kompas → `https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/<eerste-letter>/<stofnaam>` (bv. `/m/metformine`, `/a/atorvastatine`, `/b/bisoprolol`)
-  - STOPP-NL / START-NL → `https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/` (versie 2). Voeg waar mogelijk een hoofdstuk-anker toe op basis van de letter van de criteriumcode, bv. E1/E3 → `#e-cardiovasculaire-belasting`. Gebruik alleen ankers waarvan je de exacte slug zeker weet; bij twijfel laat het anker weg en gebruik de basis-URL.
   - KNMP Kennisbank → gebruik Farmacotherapeutisch Kompas als publiek toegankelijk alternatief (`https://www.farmacotherapeutischkompas.nl/bladeren/preparaatteksten/...`)
   - G-Standaard interactie → gebruik de FK-interactiepagina van het betreffende geneesmiddel op `farmacotherapeutischkompas.nl`
   - SmPC → `https://www.geneesmiddeleninformatiebank.nl` product-pagina voor het betreffende geneesmiddel
@@ -508,8 +509,8 @@ PROMPT;
                                                 'type' => 'string',
                                                 'enum' => ['STOPP-NL', 'START-NL', 'NHG-standaard', 'KNMP Kennisbank', 'G-Standaard', 'SmPC', 'Farmacotherapeutisch Kompas', 'Overig'],
                                             ],
-                                            'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer, bv. "STOPP-NL K1 — langwerkende benzodiazepines bij ouderen" of "NHG-Standaard Diabetes mellitus type 2 (M01)"'],
-                                            'url' => ['type' => 'string', 'description' => 'Volledige canonieke https-URL naar de specifieke pagina van deze bron. Alleen opnemen als je 100% zeker bent van de exacte URL op het officiële brondomein (www.nhg.org/thema/farmacotherapie/stop-nl-v2/, richtlijnen.nhg.org, www.farmacotherapeutischkompas.nl, www.geneesmiddeleninformatiebank.nl). Voor STOPP-NL/START-NL gebruik je altijd de v2-pagina, eventueel met hoofdstuk-anker (bv. #e-cardiovasculaire-belasting). Bij twijfel: weglaten. Verzin nooit een URL en neem geen toplevel-homepages op.'],
+                                            'titel' => ['type' => 'string', 'description' => 'Korte aanduiding met specifieke code/nummer. Voor STOPP-NL: gebruik STOP-NL v2 met format "STOPP-NL <Letter><Nummer> — beschrijving" (bv. "STOPP-NL E1 — langwerkende NSAID bij hartfalen"). Voor NHG: format "NHG-Standaard <onderwerp> (<code>)" (bv. "NHG-Standaard Diabetes mellitus type 2 (M01)"). START-NL is afgeschaft in v2 — gebruik niet meer.'],
+                                            'url' => ['type' => 'string', 'description' => 'Volledige canonieke https-URL naar de specifieke pagina van deze bron. NIET opnemen voor STOPP-NL — het systeem bouwt zelf de deep-link op basis van de criteriumcode-letter. Voor andere bronnen alleen opnemen als je 100% zeker bent van de exacte URL op het officiële brondomein (richtlijnen.nhg.org, www.farmacotherapeutischkompas.nl, www.geneesmiddeleninformatiebank.nl). Bij twijfel: weglaten. Verzin nooit een URL en neem geen toplevel-homepages op.'],
                                         ],
                                         'required' => ['type', 'titel'],
                                     ],

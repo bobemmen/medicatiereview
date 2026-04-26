@@ -2,9 +2,29 @@
 
 @if (!empty($bronnen))
     @php
+        $stoppV2Base = 'https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/';
+
+        // STOP-NL v2 hoofdstuk-ankers per criteriumcode-letter.
+        // Bevestigd: E = cardiovasculaire-belasting (per gebruikersopgave).
+        // TODO: vul de overige letters aan met de exacte slug uit de inhoudsopgave op
+        //       https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/
+        // Bekende v2-domeinen (slug onbekend): vallen, cognitieve achteruitgang /
+        // anticholinerge belasting, mictie- en defecatieproblemen, bloedingsrisico,
+        // beperkte levensverwachting < 1 jaar.
+        $stoppV2Anchors = [
+            'E' => 'e-cardiovasculaire-belasting',
+            // 'A' => 'a-...',
+            // 'B' => 'b-...',
+            // 'C' => 'c-...',
+            // 'D' => 'd-...',
+            // 'F' => 'f-...',
+            // 'G' => 'g-...',
+            // 'H' => 'h-...',
+        ];
+
         $fallbackUrls = [
-            'STOPP-NL'                    => 'https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/',
-            'START-NL'                    => 'https://www.nhg.org/thema/farmacotherapie/stop-nl-v2/',
+            'STOPP-NL'                    => $stoppV2Base,
+            'START-NL'                    => $stoppV2Base,
             'NHG-standaard'               => 'https://richtlijnen.nhg.org/standaarden',
             'KNMP Kennisbank'             => 'https://www.farmacotherapeutischkompas.nl',
             'G-Standaard'                 => 'https://www.farmacotherapeutischkompas.nl',
@@ -28,8 +48,22 @@
                 $titel   = $bron['titel'] ?? '';
                 $rawUrl  = trim((string) ($bron['url'] ?? ''));
 
-                $deepLink = null;
-                if ($rawUrl !== '') {
+                // Voor STOPP-NL/START-NL bouwen we de URL zelf op basis van de
+                // criteriumcode-letter in de titel. Dat is betrouwbaarder dan
+                // wat het LLM verzint, en geeft een directe deep-link naar het
+                // juiste hoofdstuk wanneer we de slug kennen.
+                $stoppDeepLink = null;
+                if (in_array($type, ['STOPP-NL', 'START-NL'], true)) {
+                    if (preg_match('/\b([A-Z])\d+/u', $titel, $m)) {
+                        $letter = $m[1];
+                        if (isset($stoppV2Anchors[$letter])) {
+                            $stoppDeepLink = $stoppV2Base . '#' . $stoppV2Anchors[$letter];
+                        }
+                    }
+                }
+
+                $deepLink = $stoppDeepLink;
+                if ($deepLink === null && $rawUrl !== '') {
                     $scheme = parse_url($rawUrl, PHP_URL_SCHEME);
                     $host   = strtolower((string) parse_url($rawUrl, PHP_URL_HOST));
                     $allowed = $allowedHosts[$type] ?? null;
