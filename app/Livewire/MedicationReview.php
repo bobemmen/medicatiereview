@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Demo\MockAnalysis;
 use App\Services\ClaudeService;
 use App\Services\DossierExtractor;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -50,6 +51,26 @@ class MedicationReview extends Component
     public bool $showUnlockModal = false;
     public string $unlockInput = '';
     public ?string $unlockError = null;
+
+    /**
+     * Demo-modus: mount met `?demo=review` of `?demo=rapport` (via /demo/{demo})
+     * laadt mock-data en springt direct naar het review- of rapport-scherm.
+     * Bedoeld voor snelle UI-iteratie zonder de hele analyse-pipeline te draaien.
+     */
+    public function mount(?string $demo = null): void
+    {
+        if ($demo === null) {
+            return;
+        }
+
+        if (!in_array($demo, ['review', 'rapport'], true)) {
+            return;
+        }
+
+        $this->analysis = MockAnalysis::data();
+        $this->initialiseReviewState();
+        $this->step = $demo;
+    }
 
     public function acceptDisclaimer(): void
     {
