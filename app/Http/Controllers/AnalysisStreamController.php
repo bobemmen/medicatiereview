@@ -41,7 +41,13 @@ class AnalysisStreamController extends Controller
             }
             // default_socket_timeout staat standaard op 60s — te kort voor grote dossiers.
             ini_set('default_socket_timeout', '300');
-            ignore_user_abort(false);
+            // ignore_user_abort(true): PHP mag het script NIET abrupt beëindigen
+            // wanneer de verbinding wegvalt. Zonder dit stopt PHP bij de eerste
+            // echo-poging na een verbindingsbreuk met een TCP RST, waardoor de
+            // browser "Error in input stream" krijgt en onze catch/finally-blokken
+            // nooit draaien. Met true detecteren we de abort via connection_aborted()
+            // en sluiten we de stream netjes af.
+            ignore_user_abort(true);
 
             // PHP-warnings/notices mogen de SSE-stroom niet corrumperen.
             set_error_handler(function (int $errno, string $errstr, string $errfile, int $errline): bool {
@@ -90,18 +96,16 @@ class AnalysisStreamController extends Controller
                 $terminalEmitted = true;
             } finally {
                 if (!$terminalEmitted) {
-                    // De foreach-loop is geëindigd zonder result en zonder gevangen
-                    // exception. Meest waarschijnlijke oorzaak: connection_aborted
-                    // tijdens de stream, of een lege Anthropic-respons. Emit alsnog
-                    // een error zodat de browser geen "vroegtijdig afgebroken" toont.
                     Log::warning('Analyse-stream sloot zonder result of error', [
                         'heartbeats' => $heartbeatsEmitted,
                         'aborted' => $abortedDuringStream,
                     ]);
-                    $message = $abortedDuringStream
-                        ? 'De verbinding werd onderbroken voordat de analyse klaar was. Probeer het opnieuw.'
-                        : 'De analyse leverde geen resultaat op. Probeer het opnieuw of gebruik een korter dossier.';
-                    $this->sseEmit('error', ['message' => $message]);
+                    // Emit alleen een error als de verbinding nog actief is. Bij een
+                    // al-gedetecteerde abort heeft emitting geen zin; de browser
+                    // krijgt sowieso de fallback-boodschap uit de JS.
+                    if (!$abortedDuringStream) {
+                        $this->sseEmit('error', ['message' => 'De analyse leverde geen resultaat op. Probeer het opnieuw of gebruik een korter dossier.']);
+                    }
                 }
                 restore_error_handler();
             }
