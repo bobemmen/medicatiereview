@@ -55,6 +55,8 @@
                     let buffer = '';
                     let finalResult = null;
                     let gotError = null;
+                    let sawStart = false;
+                    let heartbeats = 0;
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) break;
@@ -74,11 +76,23 @@
                             try { parsed = JSON.parse(data); } catch (e) { continue; }
                             if (event === 'result') finalResult = parsed;
                             else if (event === 'error') gotError = parsed?.message || 'Onbekende streamfout';
+                            else if (event === 'start') sawStart = true;
+                            else if (event === 'heartbeat') heartbeats++;
                         }
                     }
                     if (gotError) await wire.call('setAnalysisError', gotError);
                     else if (finalResult) await wire.call('setAnalysisResult', finalResult);
-                    else await wire.call('setAnalysisError', 'De analyse is vroegtijdig afgebroken.');
+                    else {
+                        // Stream sloot zonder result én zonder error. Geef de gebruiker
+                        // context over hoe ver we kwamen, zodat helder is of het nooit
+                        // begon of mid-flight is afgekapt.
+                        const detail = !sawStart
+                            ? 'De analyse is niet gestart. Controleer je internetverbinding en probeer het opnieuw.'
+                            : heartbeats === 0
+                                ? 'De analyse is direct na de start afgebroken. Probeer het opnieuw.'
+                                : `De analyse is vroegtijdig afgebroken na ${heartbeats} voortgangs-events. Probeer het opnieuw — vaak helpt een nieuwe poging of een korter dossier.`;
+                        await wire.call('setAnalysisError', detail);
+                    }
                 }).catch(async (err) => {
                     await wire.call('setAnalysisError', 'Netwerkfout: ' + (err?.message || err));
                 });

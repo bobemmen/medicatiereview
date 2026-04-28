@@ -51,17 +51,30 @@ class AnalysisStreamController extends Controller
 
             $this->sseEmit('start', ['ts' => microtime(true)]);
 
+            // Houd bij of we een terminale boodschap (result of error) hebben verstuurd.
+            // Zo niet, dan emitten we in finally alsnog een error zodat de browser nooit
+            // met een lege stream eindigt en "vroegtijdig afgebroken" ziet.
+            $terminalEmitted = false;
+            $heartbeatsEmitted = 0;
+            $abortedDuringStream = false;
+
             try {
                 foreach ($claude->streamAnalyseDossier($validated['dossier']) as [$event, $data]) {
                     if ($event === 'heartbeat') {
+                        $heartbeatsEmitted++;
                         $this->sseEmit('heartbeat', ['ts' => microtime(true)]);
                     } elseif ($event === 'result') {
                         $this->incrementReviewCount();
                         $this->sseEmit('result', $data);
+                        $terminalEmitted = true;
                     }
 
                     if (connection_aborted()) {
-                        Log::info('Analyse-stream: client heeft verbinding verbroken');
+                        $abortedDuringStream = true;
+                        Log::info('Analyse-stream: client heeft verbinding verbroken', [
+                            'heartbeats' => $heartbeatsEmitted,
+                            'result_emitted' => $terminalEmitted,
+                        ]);
                         break;
                     }
                 }
@@ -70,10 +83,26 @@ class AnalysisStreamController extends Controller
                     'error'   => $e->getMessage(),
                     'class'   => get_class($e),
                     'file'    => $e->getFile() . ':' . $e->getLine(),
+                    'heartbeats' => $heartbeatsEmitted,
                     'trace'   => $e->getTraceAsString(),
                 ]);
                 $this->sseEmit('error', ['message' => $e->getMessage()]);
+                $terminalEmitted = true;
             } finally {
+                if (!$terminalEmitted) {
+                    // De foreach-loop is geëindigd zonder result en zonder gevangen
+                    // exception. Meest waarschijnlijke oorzaak: connection_aborted
+                    // tijdens de stream, of een lege Anthropic-respons. Emit alsnog
+                    // een error zodat de browser geen "vroegtijdig afgebroken" toont.
+                    Log::warning('Analyse-stream sloot zonder result of error', [
+                        'heartbeats' => $heartbeatsEmitted,
+                        'aborted' => $abortedDuringStream,
+                    ]);
+                    $message = $abortedDuringStream
+                        ? 'De verbinding werd onderbroken voordat de analyse klaar was. Probeer het opnieuw.'
+                        : 'De analyse leverde geen resultaat op. Probeer het opnieuw of gebruik een korter dossier.';
+                    $this->sseEmit('error', ['message' => $message]);
+                }
                 restore_error_handler();
             }
         }, 200, $this->sseHeaders());
