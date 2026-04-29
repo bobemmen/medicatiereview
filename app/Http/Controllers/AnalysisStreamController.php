@@ -59,10 +59,9 @@ class AnalysisStreamController extends Controller
 
             // Houd bij of we een terminale boodschap (result of error) hebben verstuurd.
             // Zo niet, dan emitten we in finally alsnog een error zodat de browser nooit
-            // met een lege stream eindigt en "vroegtijdig afgebroken" ziet.
+            // met een lege stream eindigt.
             $terminalEmitted = false;
             $heartbeatsEmitted = 0;
-            $abortedDuringStream = false;
 
             try {
                 foreach ($claude->streamAnalyseDossier($validated['dossier']) as [$event, $data]) {
@@ -74,15 +73,11 @@ class AnalysisStreamController extends Controller
                         $this->sseEmit('result', $data);
                         $terminalEmitted = true;
                     }
-
-                    if (connection_aborted()) {
-                        $abortedDuringStream = true;
-                        Log::info('Analyse-stream: client heeft verbinding verbroken', [
-                            'heartbeats' => $heartbeatsEmitted,
-                            'result_emitted' => $terminalEmitted,
-                        ]);
-                        break;
-                    }
+                    // Geen connection_aborted()-check: in een PHP-FPM + proxy-setup
+                    // (zoals Laravel Cloud) geeft die regelmatig false positives bij
+                    // tijdelijke FastCGI-buffer-issues. Met ignore_user_abort(true)
+                    // mag de loop doorlopen; faal-writes zijn stil. We laten de
+                    // generator natuurlijk eindigen (yield result of throw).
                 }
             } catch (\Throwable $e) {
                 Log::error('Analyse-stream faalde', [
@@ -98,14 +93,12 @@ class AnalysisStreamController extends Controller
                 if (!$terminalEmitted) {
                     Log::warning('Analyse-stream sloot zonder result of error', [
                         'heartbeats' => $heartbeatsEmitted,
-                        'aborted' => $abortedDuringStream,
                     ]);
-                    // Emit alleen een error als de verbinding nog actief is. Bij een
-                    // al-gedetecteerde abort heeft emitting geen zin; de browser
-                    // krijgt sowieso de fallback-boodschap uit de JS.
-                    if (!$abortedDuringStream) {
-                        $this->sseEmit('error', ['message' => 'De analyse leverde geen resultaat op. Probeer het opnieuw of gebruik een korter dossier.']);
-                    }
+                    // Probeer altijd een error te emiten. Als de verbinding al weg is,
+                    // faalt deze write stil dankzij ignore_user_abort(true). Als de
+                    // verbinding nog leeft (bv. bij een lege Anthropic-respons), krijgt
+                    // de browser tenminste een nette boodschap.
+                    $this->sseEmit('error', ['message' => 'De analyse leverde geen resultaat op. Probeer het opnieuw of gebruik een korter dossier.']);
                 }
                 restore_error_handler();
             }
